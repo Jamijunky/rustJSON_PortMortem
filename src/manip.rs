@@ -229,10 +229,8 @@ unsafe fn get_object_item(
         }
     } else {
         while !current_element.is_null()
-            && case_insensitive_strcmp(
-                name as *const u8,
-                (*current_element).string as *const u8,
-            ) != 0
+            && case_insensitive_strcmp(name as *const u8, (*current_element).string as *const u8)
+                != 0
         {
             current_element = (*current_element).next;
         }
@@ -407,10 +405,7 @@ pub unsafe fn cjson_add_item_to_object_cs(
 }
 
 /// `cJSON_AddItemReferenceToArray`.
-pub unsafe fn cjson_add_item_reference_to_array(
-    array: *mut CJson,
-    item: *mut CJson,
-) -> CJsonBool {
+pub unsafe fn cjson_add_item_reference_to_array(array: *mut CJson, item: *mut CJson) -> CJsonBool {
     if array.is_null() {
         return 0;
     }
@@ -513,10 +508,7 @@ pub unsafe fn cjson_add_raw_to_object(
 
 /// `cJSON_DetachItemViaPointer`.
 pub unsafe fn cjson_detach_item_via_pointer(parent: *mut CJson, item: *mut CJson) -> *mut CJson {
-    if parent.is_null()
-        || item.is_null()
-        || (item != (*parent).child && (*item).prev.is_null())
-    {
+    if parent.is_null() || item.is_null() || (item != (*parent).child && (*item).prev.is_null()) {
         return ptr::null_mut();
     }
 
@@ -559,7 +551,10 @@ pub unsafe fn cjson_delete_item_from_array(array: *mut CJson, which: c_int) {
 }
 
 /// `cJSON_DetachItemFromObject`.
-pub unsafe fn cjson_detach_item_from_object(object: *mut CJson, string: *const c_char) -> *mut CJson {
+pub unsafe fn cjson_detach_item_from_object(
+    object: *mut CJson,
+    string: *const c_char,
+) -> *mut CJson {
     let to_detach = cjson_get_object_item(object, string);
     cjson_detach_item_via_pointer(object, to_detach)
 }
@@ -580,13 +575,20 @@ pub unsafe fn cjson_delete_item_from_object(object: *mut CJson, string: *const c
 }
 
 /// `cJSON_DeleteItemFromObjectCaseSensitive`.
-pub unsafe fn cjson_delete_item_from_object_case_sensitive(object: *mut CJson, string: *const c_char) {
+pub unsafe fn cjson_delete_item_from_object_case_sensitive(
+    object: *mut CJson,
+    string: *const c_char,
+) {
     let item = cjson_detach_item_from_object_case_sensitive(object, string);
     cjson_delete(item);
 }
 
 /// `cJSON_InsertItemInArray`.
-pub unsafe fn cjson_insert_item_in_array(array: *mut CJson, which: c_int, newitem: *mut CJson) -> CJsonBool {
+pub unsafe fn cjson_insert_item_in_array(
+    array: *mut CJson,
+    which: c_int,
+    newitem: *mut CJson,
+) -> CJsonBool {
     if which < 0 || newitem.is_null() {
         return 0;
     }
@@ -618,11 +620,7 @@ pub unsafe fn cjson_replace_item_via_pointer(
     item: *mut CJson,
     replacement: *mut CJson,
 ) -> CJsonBool {
-    if parent.is_null()
-        || (*parent).child.is_null()
-        || replacement.is_null()
-        || item.is_null()
-    {
+    if parent.is_null() || (*parent).child.is_null() || replacement.is_null() || item.is_null() {
         return 0;
     }
 
@@ -658,7 +656,11 @@ pub unsafe fn cjson_replace_item_via_pointer(
 }
 
 /// `cJSON_ReplaceItemInArray`.
-pub unsafe fn cjson_replace_item_in_array(array: *mut CJson, which: c_int, newitem: *mut CJson) -> CJsonBool {
+pub unsafe fn cjson_replace_item_in_array(
+    array: *mut CJson,
+    which: c_int,
+    newitem: *mut CJson,
+) -> CJsonBool {
     if which < 0 {
         return 0;
     }
@@ -689,7 +691,11 @@ unsafe fn replace_item_in_object(
 
     (*replacement).type_ &= !CJSON_STRING_IS_CONST;
 
-    cjson_replace_item_via_pointer(object, get_object_item(object, string, case_sensitive), replacement)
+    cjson_replace_item_via_pointer(
+        object,
+        get_object_item(object, string, case_sensitive),
+        replacement,
+    )
 }
 
 /// `cJSON_ReplaceItemInObject`.
@@ -747,7 +753,11 @@ pub unsafe fn cjson_create_bool(boolean: CJsonBool) -> *mut CJson {
     let hooks = current_hooks();
     let item = new_item(&hooks);
     if !item.is_null() {
-        (*item).type_ = if boolean != 0 { CJSON_TRUE } else { CJSON_FALSE };
+        (*item).type_ = if boolean != 0 {
+            CJSON_TRUE
+        } else {
+            CJSON_FALSE
+        };
     }
     item
 }
@@ -1179,7 +1189,11 @@ pub unsafe fn cjson_is_raw(item: *const CJson) -> CJsonBool {
 }
 
 /// `cJSON_Compare`.
-pub unsafe fn cjson_compare(a: *const CJson, b: *const CJson, case_sensitive: CJsonBool) -> CJsonBool {
+pub unsafe fn cjson_compare(
+    a: *const CJson,
+    b: *const CJson,
+    case_sensitive: CJsonBool,
+) -> CJsonBool {
     if a.is_null() || b.is_null() || (*a).type_ & 0xFF != (*b).type_ & 0xFF {
         return 0;
     }
@@ -1209,7 +1223,8 @@ pub unsafe fn cjson_compare(a: *const CJson, b: *const CJson, case_sensitive: CJ
             if (*a).valuestring.is_null() || (*b).valuestring.is_null() {
                 return 0;
             }
-            (cstr_cmp((*a).valuestring as *const u8, (*b).valuestring as *const u8) == 0) as CJsonBool
+            (cstr_cmp((*a).valuestring as *const u8, (*b).valuestring as *const u8) == 0)
+                as CJsonBool
         }
         CJSON_ARRAY => {
             let mut a_element = (*a).child;

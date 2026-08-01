@@ -85,7 +85,12 @@ pub unsafe extern "C" fn cJSON_ParseWithLengthOpts(
     return_parse_end: *mut *const c_char,
     require_null_terminated: CJsonBool,
 ) -> *mut CJson {
-    cjson_parse_with_length_opts(value, buffer_length, return_parse_end, require_null_terminated)
+    cjson_parse_with_length_opts(
+        value,
+        buffer_length,
+        return_parse_end,
+        require_null_terminated,
+    )
 }
 
 /// `cJSON_Parse`.
@@ -324,10 +329,7 @@ pub unsafe extern "C" fn cJSON_DetachItemViaPointer(
 
 /// `cJSON_DetachItemFromArray`.
 #[no_mangle]
-pub unsafe extern "C" fn cJSON_DetachItemFromArray(
-    array: *mut CJson,
-    which: c_int,
-) -> *mut CJson {
+pub unsafe extern "C" fn cJSON_DetachItemFromArray(array: *mut CJson, which: c_int) -> *mut CJson {
     cjson_detach_item_from_array(array, which)
 }
 
@@ -753,10 +755,7 @@ pub unsafe extern "C" fn get_decimal_point() -> u8 {
 
 /// `case_insensitive_strcmp`.
 #[no_mangle]
-pub unsafe extern "C" fn case_insensitive_strcmp(
-    string1: *const u8,
-    string2: *const u8,
-) -> c_int {
+pub unsafe extern "C" fn case_insensitive_strcmp(string1: *const u8, string2: *const u8) -> c_int {
     case_insensitive_strcmp_impl(string1, string2)
 }
 
@@ -913,25 +912,37 @@ unsafe fn cjson_strdup_impl(string: *const u8, hooks: *const InternalHooks) -> *
 
 /// `cJSONUtils_GetPointer`.
 #[no_mangle]
-pub unsafe extern "C" fn cJSONUtils_GetPointer(object: *mut CJson, pointer: *const c_char) -> *mut CJson {
+pub unsafe extern "C" fn cJSONUtils_GetPointer(
+    object: *mut CJson,
+    pointer: *const c_char,
+) -> *mut CJson {
     crate::utils::cjson_utils_get_pointer(object, pointer as *const u8)
 }
 
 /// `cJSONUtils_GetPointerCaseSensitive`.
 #[no_mangle]
-pub unsafe extern "C" fn cJSONUtils_GetPointerCaseSensitive(object: *mut CJson, pointer: *const c_char) -> *mut CJson {
+pub unsafe extern "C" fn cJSONUtils_GetPointerCaseSensitive(
+    object: *mut CJson,
+    pointer: *const c_char,
+) -> *mut CJson {
     crate::utils::cjson_utils_get_pointer_case_sensitive(object, pointer as *const u8)
 }
 
 /// `cJSONUtils_GeneratePatches`.
 #[no_mangle]
-pub unsafe extern "C" fn cJSONUtils_GeneratePatches(from: *mut CJson, to: *mut CJson) -> *mut CJson {
+pub unsafe extern "C" fn cJSONUtils_GeneratePatches(
+    from: *mut CJson,
+    to: *mut CJson,
+) -> *mut CJson {
     crate::utils::cjson_utils_generate_patches(from, to)
 }
 
 /// `cJSONUtils_GeneratePatchesCaseSensitive`.
 #[no_mangle]
-pub unsafe extern "C" fn cJSONUtils_GeneratePatchesCaseSensitive(from: *mut CJson, to: *mut CJson) -> *mut CJson {
+pub unsafe extern "C" fn cJSONUtils_GeneratePatchesCaseSensitive(
+    from: *mut CJson,
+    to: *mut CJson,
+) -> *mut CJson {
     crate::utils::cjson_utils_generate_patches_case_sensitive(from, to)
 }
 
@@ -948,43 +959,64 @@ pub unsafe extern "C" fn cJSONUtils_AddPatchToArray(
 
 /// `cJSONUtils_ApplyPatches`.
 #[no_mangle]
-pub unsafe extern "C" fn cJSONUtils_ApplyPatches(object: *mut CJson, patches: *const CJson) -> c_int {
+pub unsafe extern "C" fn cJSONUtils_ApplyPatches(
+    object: *mut CJson,
+    patches: *const CJson,
+) -> c_int {
     crate::utils::cjson_utils_apply_patches(object, patches)
 }
 
 /// `cJSONUtils_ApplyPatchesCaseSensitive`.
 #[no_mangle]
-pub unsafe extern "C" fn cJSONUtils_ApplyPatchesCaseSensitive(object: *mut CJson, patches: *const CJson) -> c_int {
+pub unsafe extern "C" fn cJSONUtils_ApplyPatchesCaseSensitive(
+    object: *mut CJson,
+    patches: *const CJson,
+) -> c_int {
     crate::utils::cjson_utils_apply_patches_case_sensitive(object, patches)
 }
 
 /// `cJSONUtils_MergePatch`.
 #[no_mangle]
-pub unsafe extern "C" fn cJSONUtils_MergePatch(target: *mut CJson, patch: *const CJson) -> *mut CJson {
+pub unsafe extern "C" fn cJSONUtils_MergePatch(
+    target: *mut CJson,
+    patch: *const CJson,
+) -> *mut CJson {
     crate::utils::cjson_utils_merge_patch(target, patch)
 }
 
 /// `cJSONUtils_MergePatchCaseSensitive`.
 #[no_mangle]
-pub unsafe extern "C" fn cJSONUtils_MergePatchCaseSensitive(target: *mut CJson, patch: *const CJson) -> *mut CJson {
+pub unsafe extern "C" fn cJSONUtils_MergePatchCaseSensitive(
+    target: *mut CJson,
+    patch: *const CJson,
+) -> *mut CJson {
     crate::utils::cjson_utils_merge_patch_case_sensitive(target, patch)
 }
 
 /// `cJSONUtils_GenerateMergePatch`.
 #[no_mangle]
-pub unsafe extern "C" fn cJSONUtils_GenerateMergePatch(from: *mut CJson, to: *mut CJson) -> *mut CJson {
+pub unsafe extern "C" fn cJSONUtils_GenerateMergePatch(
+    from: *mut CJson,
+    to: *mut CJson,
+) -> *mut CJson {
     crate::utils::cjson_utils_generate_merge_patch(from, to)
 }
 
 /// `cJSONUtils_GenerateMergePatchCaseSensitive`.
 #[no_mangle]
-pub unsafe extern "C" fn cJSONUtils_GenerateMergePatchCaseSensitive(from: *mut CJson, to: *mut CJson) -> *mut CJson {
+pub unsafe extern "C" fn cJSONUtils_GenerateMergePatchCaseSensitive(
+    from: *mut CJson,
+    to: *mut CJson,
+) -> *mut CJson {
     crate::utils::cjson_utils_generate_merge_patch_case_sensitive(from, to)
 }
 
 /// `cJSONUtils_FindPointerFromObjectTo`.
 #[no_mangle]
-pub unsafe extern "C" fn cJSONUtils_FindPointerFromObjectTo(object: *const CJson, target: *const CJson) -> *mut c_char {
+pub unsafe extern "C" fn cJSONUtils_FindPointerFromObjectTo(
+    object: *const CJson,
+    target: *const CJson,
+) -> *mut c_char {
     crate::utils::cjson_utils_find_pointer_from_object_to(object, target)
 }
 

@@ -16,4 +16,3 @@ cc = "1"
 
 [profile.release]
 debug = true
-panic = "abort"

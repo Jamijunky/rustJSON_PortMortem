@@ -21,25 +21,25 @@ fn with_lock<R>(f: impl FnOnce() -> R) -> R {
 
 // ---- reference C cJSON public API -----------------------------------------
 
-#[link(name = "cjson_ref")]
+#[link(name = "cjson_ref_bench")]
 unsafe extern "C" {
-    fn cJSON_ParseWithLengthOpts(
+    fn ref_cJSON_ParseWithLengthOpts(
         value: *const c_char,
         buffer_length: usize,
         return_parse_end: *mut *const c_char,
         require_null_terminated: c_int,
     ) -> *mut CJson;
-    fn cJSON_Delete(item: *mut CJson);
-    fn cJSON_Print(item: *const CJson) -> *mut c_char;
-    fn cJSON_PrintUnformatted(item: *const CJson) -> *mut c_char;
-    fn cJSON_PrintBuffered(item: *const CJson, prebuffer: c_int, fmt: c_int) -> *mut c_char;
-    fn cJSON_PrintPreallocated(
+    fn ref_cJSON_Delete(item: *mut CJson);
+    fn ref_cJSON_Print(item: *const CJson) -> *mut c_char;
+    fn ref_cJSON_PrintUnformatted(item: *const CJson) -> *mut c_char;
+    fn ref_cJSON_PrintBuffered(item: *const CJson, prebuffer: c_int, fmt: c_int) -> *mut c_char;
+    fn ref_cJSON_PrintPreallocated(
         item: *mut CJson,
         buffer: *mut c_char,
         length: c_int,
         fmt: c_int,
     ) -> c_int;
-    fn cJSON_free(ptr: *mut c_void);
+    fn ref_cJSON_free(ptr: *mut c_void);
 }
 
 fn cstr_bytes(p: *const c_char) -> Vec<u8> {
@@ -56,10 +56,7 @@ fn cstr_bytes(p: *const c_char) -> Vec<u8> {
 
 /// Parse `input` with both implementations. Returns (ours, refs); both NULL if
 /// the parse failed (we only compare printing on successfully parsed trees).
-fn parse_both(
-    input: &[u8],
-    require_null_terminated: bool,
-) -> (*mut CJson, *mut CJson) {
+fn parse_both(input: &[u8], require_null_terminated: bool) -> (*mut CJson, *mut CJson) {
     let input_c = {
         let mut v = input.to_vec();
         v.push(0);
@@ -74,7 +71,7 @@ fn parse_both(
         )
     };
     let refs = unsafe {
-        cJSON_ParseWithLengthOpts(
+        ref_cJSON_ParseWithLengthOpts(
             input_c.as_ptr() as *const c_char,
             input.len(),
             ptr::null_mut(),
@@ -83,7 +80,7 @@ fn parse_both(
     };
     if ours.is_null() != refs.is_null() {
         unsafe { cjson_delete(ours) };
-        unsafe { cJSON_Delete(refs) };
+        unsafe { ref_cJSON_Delete(refs) };
         panic!(
             "parse outcome mismatch for {:?}",
             String::from_utf8_lossy(input)
@@ -96,34 +93,41 @@ fn check_print(input: &[u8]) {
     let (ours, refs) = parse_both(input, true);
     if ours.is_null() {
         unsafe { cjson_delete(ours) };
-        unsafe { cJSON_Delete(refs) };
+        unsafe { ref_cJSON_Delete(refs) };
         return;
     }
 
     let run = |label: &str,
-                   ours_f: unsafe fn(*const CJson) -> *mut c_char,
-                   refs_f: unsafe extern "C" fn(*const CJson) -> *mut c_char| {
+               ours_f: unsafe fn(*const CJson) -> *mut c_char,
+               refs_f: unsafe extern "C" fn(*const CJson) -> *mut c_char| {
         let a = unsafe { ours_f(ours) };
         let b = unsafe { refs_f(refs) };
-        assert!(!a.is_null() && !b.is_null(), "{label}: null print for {input:?}");
+        assert!(
+            !a.is_null() && !b.is_null(),
+            "{label}: null print for {input:?}"
+        );
         let ab = cstr_bytes(a);
         let bb = cstr_bytes(b);
         unsafe {
-            cJSON_free(a as *mut c_void);
-            cJSON_free(b as *mut c_void);
+            ref_cJSON_free(a as *mut c_void);
+            ref_cJSON_free(b as *mut c_void);
         }
         assert_eq!(ab, bb, "{label} output mismatch for {:?}", input);
     };
 
     // whole tree
-    run("Print", cjson_print, cJSON_Print);
-    run("PrintUnformatted", cjson_print_unformatted, cJSON_PrintUnformatted);
+    run("Print", cjson_print, ref_cJSON_Print);
+    run(
+        "PrintUnformatted",
+        cjson_print_unformatted,
+        ref_cJSON_PrintUnformatted,
+    );
 
     // buffered, various prebuffer sizes to exercise ensure()/realloc paths
     for prebuffer in [0, 1, 2, 7, 255, 256, 257, 4096] {
         for fmt in [0, 1] {
             let a = unsafe { cjson_print_buffered(ours, prebuffer, fmt) };
-            let b = unsafe { cJSON_PrintBuffered(refs, prebuffer, fmt) };
+            let b = unsafe { ref_cJSON_PrintBuffered(refs, prebuffer, fmt) };
             assert!(
                 !a.is_null() && !b.is_null(),
                 "PrintBuffered({prebuffer},{fmt}) null for {input:?}"
@@ -131,8 +135,8 @@ fn check_print(input: &[u8]) {
             let ab = cstr_bytes(a);
             let bb = cstr_bytes(b);
             unsafe {
-                cJSON_free(a as *mut c_void);
-                cJSON_free(b as *mut c_void);
+                ref_cJSON_free(a as *mut c_void);
+                ref_cJSON_free(b as *mut c_void);
             }
             assert_eq!(
                 ab, bb,
@@ -155,14 +159,17 @@ fn check_print(input: &[u8]) {
             )
         };
         let rr = unsafe {
-            cJSON_PrintPreallocated(
+            ref_cJSON_PrintPreallocated(
                 refs as *mut CJson,
                 buf_refs.as_mut_ptr() as *mut c_char,
                 8192,
                 fmt,
             )
         };
-        assert_eq!(ro, rr, "PrintPreallocated({fmt}) return mismatch for {input:?}");
+        assert_eq!(
+            ro, rr,
+            "PrintPreallocated({fmt}) return mismatch for {input:?}"
+        );
         if ro != 0 {
             // only compare up to and including the NUL terminator
             assert_eq!(
@@ -185,19 +192,19 @@ fn check_print(input: &[u8]) {
             rc = unsafe { (*rc).next };
         }
         let a = unsafe { cjson_print(child) };
-        let b = unsafe { cJSON_Print(rc) };
+        let b = unsafe { ref_cJSON_Print(rc) };
         let ab = cstr_bytes(a);
         let bb = cstr_bytes(b);
         unsafe {
-            cJSON_free(a as *mut c_void);
-            cJSON_free(b as *mut c_void);
+            ref_cJSON_free(a as *mut c_void);
+            ref_cJSON_free(b as *mut c_void);
         }
         assert_eq!(ab, bb, "child Print mismatch for {:?}", input);
         child = unsafe { (*child).next };
     }
 
     unsafe { cjson_delete(ours) };
-    unsafe { cJSON_Delete(refs) };
+    unsafe { ref_cJSON_Delete(refs) };
 }
 
 fn corpus() -> Vec<Vec<u8>> {
@@ -216,15 +223,43 @@ fn corpus() -> Vec<Vec<u8>> {
     }
 
     let extra: Vec<&str> = vec![
-        "null", "true", "false", "0", "-0", "1.5", "1e300", "-1e-300", "1e999",
-        "2147483647", "2147483648", "-2147483648", "12345678901234567890123",
-        "0.0000000000000000001", "3.141592653589793",
-        "\"\"", "\"hello\"", "\"a\\\"b\"", "\"\\u0041\\u00e9\\uD83D\\uDE00\"",
-        "\"\\uFFFF\"", "\"tab\\t\\n\\r\\b\\f\\\\\"", "\"\\/\"",
-        "[]", "{}", "[1,2,3]", "[ ]", "[1,2,]", "[[[[]]]]", "[\"a\",\"b\",[true,false,null]]",
-        "{\"a\":1}", "{\"a\":1,}", "{\"a\":1,\"b\":[true,false,null]}",
-        "{\"\":0}", "{\"a\":1,\"a\":2}", "{\"\\u0061\":1}",
-        "  {\"a\":1}  ", "\u{feff}{\"a\":1}",
+        "null",
+        "true",
+        "false",
+        "0",
+        "-0",
+        "1.5",
+        "1e300",
+        "-1e-300",
+        "1e999",
+        "2147483647",
+        "2147483648",
+        "-2147483648",
+        "12345678901234567890123",
+        "0.0000000000000000001",
+        "3.141592653589793",
+        "\"\"",
+        "\"hello\"",
+        "\"a\\\"b\"",
+        "\"\\u0041\\u00e9\\uD83D\\uDE00\"",
+        "\"\\uFFFF\"",
+        "\"tab\\t\\n\\r\\b\\f\\\\\"",
+        "\"\\/\"",
+        "[]",
+        "{}",
+        "[1,2,3]",
+        "[ ]",
+        "[1,2,]",
+        "[[[[]]]]",
+        "[\"a\",\"b\",[true,false,null]]",
+        "{\"a\":1}",
+        "{\"a\":1,}",
+        "{\"a\":1,\"b\":[true,false,null]}",
+        "{\"\":0}",
+        "{\"a\":1,\"a\":2}",
+        "{\"\\u0061\":1}",
+        "  {\"a\":1}  ",
+        "\u{feff}{\"a\":1}",
     ];
     for s in extra {
         inputs.push(s.as_bytes().to_vec());

@@ -9,10 +9,10 @@
 #![allow(clippy::missing_safety_doc)]
 
 pub mod alloc;
+pub mod ffi;
 pub mod float;
 pub mod manip;
 pub mod model;
 pub mod parse;
 pub mod print;
 pub mod utils;
-pub mod ffi;

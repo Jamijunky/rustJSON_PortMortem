@@ -22,11 +22,19 @@ cJSON_Utils.c (ref) ───┘                 └──  CMake harness
 
 * **22/22** tests from the original suite pass against the Rust port
   (`19` core + `3` utils), and **22/22** under AddressSanitizer.
-* **26** Rust unit/integration tests pass (`cargo test`), including 4
-  differential suites that compare the port against the real compiled
-  reference C library and deterministic fuzzers.
+* **34** Rust unit/integration tests pass (`cargo test`, and also under
+  `cargo test --release`), including differential suites that run the port and
+  the compiled reference C library side by side — asserting identical return
+  codes and byte-identical output — plus deterministic fuzzers.
 * **121/121** JSON-Patch corpus entries (from `json-patch-tests`) apply and
   round-trip identically to the reference.
+
+Submission-facing docs:
+
+* [`DECISIONS.md`](DECISIONS.md) explains the porting
+  choices and verification strategy.
+* [`BENCHMARKS.md`](BENCHMARKS.md) records reproducible
+  performance numbers from the shipped benchmark harness.
 
 ## Layout
 
@@ -53,30 +61,38 @@ port so the differential tests can call both sides.
 
 The reference sources live at `~/cjson-ref` and are **never modified**; SHA-256
 hashes are recorded in `/tmp/cjson_hashes.txt`. `build.rs` compiles
-`cJSON.c` + `cJSON_Utils.c` from there into `libcjson_ref.a`, which the
-differential tests link and replay. `harness/tests/` contains byte-identical
-copies of the original `tests/*.c`; `harness/cJSON.c` is a new
-**declarations-only** shim so the originals' `#include "../cJSON.c"` resolves
-to declarations, with all definitions coming from the Rust `staticlib`.
+`cJSON.c` + `cJSON_Utils.c` from there into `libcjson_ref_bench.a` with every
+public symbol prefixed `ref_` (see `bench_ref_rename.h`): the port exports the
+same names via `#[no_mangle]`, so the prefix lets the differential tests and
+the benchmark link the real C alongside the port and always call the genuine
+implementation (verified with `otool`/`nm`, in both debug and release builds).
+`harness/tests/` contains byte-identical copies of the original `tests/*.c`;
+`harness/cJSON.c` is a new **declarations-only** shim so the originals'
+`#include "../cJSON.c"` resolves to declarations, with all definitions coming
+from the Rust `staticlib`.
 
 ## Building and testing
 
 ```sh
 # Rust tests (includes differential tests vs. the compiled reference C)
 cargo test
+cargo test --release
 
 # Run the original C test suite against the Rust port
-cmake -S harness -B harness/build -DCMAKE_BUILD_TYPE=Release -DENABLE_CJSON_UTILS=ON
-cmake --build harness/build
-ctest --test-dir harness/build --output-on-failure
+cmake -S harness -B harness/build-utils -DCMAKE_BUILD_TYPE=Release -DENABLE_CJSON_UTILS=ON
+cmake --build harness/build-utils
+ctest --test-dir harness/build-utils --output-on-failure
 
 # Same, under AddressSanitizer (leak detection is disabled: broken on macOS)
-cmake -S harness -B harness/build-asan -DCMAKE_BUILD_TYPE=Debug \
+cmake -S harness -B harness/build-asan-utils -DCMAKE_BUILD_TYPE=Debug \
       -DENABLE_CJSON_UTILS=ON \
       "-DCMAKE_C_FLAGS=-fsanitize=address -fno-omit-frame-pointer" \
       "-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=address"
-cmake --build harness/build-asan
-ASAN_OPTIONS=detect_leaks=0 ctest --test-dir harness/build-asan --output-on-failure
+cmake --build harness/build-asan-utils
+ASAN_OPTIONS=detect_leaks=0 ctest --test-dir harness/build-asan-utils --output-on-failure
+
+# Reproducible benchmark summary vs. the reference C implementation
+cargo run --release --bin benchmark
 ```
 
 ## Equivalence notes

@@ -165,8 +165,7 @@ unsafe fn utf16_literal_to_utf8(
             return 0;
         }
         (
-            0x10000u64
-                + (((first_code & 0x3FF) as u64) << 10) | (second_code & 0x3FF) as u64,
+            0x10000u64 + (((first_code & 0x3FF) as u64) << 10) | (second_code & 0x3FF) as u64,
             12,
         )
     } else {
@@ -193,7 +192,9 @@ unsafe fn utf16_literal_to_utf8(
     let mut cp = codepoint;
     let mut pos = utf8_length as i32 - 1;
     while pos > 0 {
-        (*output_pointer).add(pos as usize).write(((cp as u8) | 0x80) & 0xBF);
+        (*output_pointer)
+            .add(pos as usize)
+            .write(((cp as u8) | 0x80) & 0xBF);
         cp >>= 6;
         pos -= 1;
     }
@@ -297,7 +298,8 @@ pub unsafe fn parse_string(item: *mut CJson, input_buffer: *mut ParseBuffer) -> 
     let mut input_end = at.add(1);
     let output: *mut u8;
 
-    {        let mut skipped_bytes: usize = 0;
+    {
+        let mut skipped_bytes: usize = 0;
         while (input_end as usize - base as usize) < buf.length && *input_end != b'"' {
             if *input_end == b'\\' {
                 if (input_end.add(1) as usize - base as usize) >= buf.length {
@@ -340,9 +342,9 @@ pub unsafe fn parse_string(item: *mut CJson, input_buffer: *mut ParseBuffer) -> 
         }
         // escape sequence
         let mut sequence_length: u32 = 2;
-    if (input_end as usize - input_pointer as usize) < 1 {
-        break 'parse;
-    }
+        if (input_end as usize - input_pointer as usize) < 1 {
+            break 'parse;
+        }
         match *input_pointer.add(1) {
             b'b' => {
                 *output_pointer = 8;
@@ -369,7 +371,8 @@ pub unsafe fn parse_string(item: *mut CJson, input_buffer: *mut ParseBuffer) -> 
                 output_pointer = output_pointer.add(1);
             }
             b'u' => {
-                sequence_length = utf16_literal_to_utf8(input_pointer, input_end, &mut output_pointer);
+                sequence_length =
+                    utf16_literal_to_utf8(input_pointer, input_end, &mut output_pointer);
                 if sequence_length == 0 {
                     break 'parse;
                 }
@@ -660,7 +663,12 @@ pub unsafe fn cjson_parse_with_opts(
         return ptr::null_mut();
     }
     let buffer_length = cstr_len(value as *const u8) + 1;
-    cjson_parse_with_length_opts(value, buffer_length, return_parse_end, require_null_terminated)
+    cjson_parse_with_length_opts(
+        value,
+        buffer_length,
+        return_parse_end,
+        require_null_terminated,
+    )
 }
 
 /// `cJSON_ParseWithLengthOpts`.
@@ -741,7 +749,8 @@ unsafe fn finish_parse_failure(
             local_error.position = buffer.length - 1;
         }
         if !return_parse_end.is_null() {
-            *return_parse_end = (local_error.json).wrapping_add(local_error.position) as *const c_char;
+            *return_parse_end =
+                (local_error.json).wrapping_add(local_error.position) as *const c_char;
         }
         GLOBAL_ERROR = local_error;
     }

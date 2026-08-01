@@ -7,9 +7,7 @@ use std::sync::{Mutex, OnceLock};
 
 use cjson::manip::cjson_delete;
 use cjson::model::CJson;
-use cjson::parse::{
-    cjson_parse_with_length_opts, get_error_ptr,
-};
+use cjson::parse::{cjson_parse_with_length_opts, get_error_ptr};
 
 /// The reference C cJSON keeps global parse state (`global_error`,
 /// `global_hooks`). Serialize every differential run so parallel test threads
@@ -23,16 +21,16 @@ fn with_lock<R>(f: impl FnOnce() -> R) -> R {
 
 // ---- reference C cJSON public API -----------------------------------------
 
-#[link(name = "cjson_ref")]
+#[link(name = "cjson_ref_bench")]
 unsafe extern "C" {
-    fn cJSON_ParseWithLengthOpts(
+    fn ref_cJSON_ParseWithLengthOpts(
         value: *const c_char,
         buffer_length: usize,
         return_parse_end: *mut *const c_char,
         require_null_terminated: c_int,
     ) -> *mut CJson;
-    fn cJSON_Delete(item: *mut CJson);
-    fn cJSON_GetErrorPtr() -> *const c_char;
+    fn ref_cJSON_Delete(item: *mut CJson);
+    fn ref_cJSON_GetErrorPtr() -> *const c_char;
 }
 
 fn cstr_bytes(p: *const c_char) -> Option<Vec<u8>> {
@@ -130,7 +128,7 @@ fn run_case(input: &[u8], require_null_terminated: bool) {
         )
     };
     let refs = unsafe {
-        cJSON_ParseWithLengthOpts(
+        ref_cJSON_ParseWithLengthOpts(
             input_c.as_ptr() as *const c_char,
             input.len(),
             &mut refs_end,
@@ -141,7 +139,7 @@ fn run_case(input: &[u8], require_null_terminated: bool) {
     let input_disp = String::from_utf8_lossy(input);
     if ours.is_null() != refs.is_null() {
         unsafe { cjson_delete(ours) };
-        unsafe { cJSON_Delete(refs) };
+        unsafe { ref_cJSON_Delete(refs) };
         panic!(
             "parse outcome mismatch for {:?}: ours={} refs={}",
             input_disp,
@@ -156,7 +154,7 @@ fn run_case(input: &[u8], require_null_terminated: bool) {
 
     // Error position and parse-end must agree.
     let ours_err = unsafe { get_error_ptr() };
-    let refs_err = unsafe { cJSON_GetErrorPtr() };
+    let refs_err = unsafe { ref_cJSON_GetErrorPtr() };
     let base = input_c.as_ptr() as *const c_char;
     let ours_err_off = if ours_err.is_null() {
         None
@@ -191,7 +189,7 @@ fn run_case(input: &[u8], require_null_terminated: bool) {
     );
 
     unsafe { cjson_delete(ours) };
-    unsafe { cJSON_Delete(refs) };
+    unsafe { ref_cJSON_Delete(refs) };
 }
 
 fn corpus() -> Vec<Vec<u8>> {
@@ -199,8 +197,7 @@ fn corpus() -> Vec<Vec<u8>> {
 
     // Everything under <ref>/tests/inputs (non-expected files).
     let home = std::env::var("HOME").unwrap();
-    let inputs_dir = std::path::PathBuf::from(&home)
-        .join("cjson-ref/tests/inputs");
+    let inputs_dir = std::path::PathBuf::from(&home).join("cjson-ref/tests/inputs");
     if let Ok(entries) = std::fs::read_dir(&inputs_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
@@ -214,36 +211,116 @@ fn corpus() -> Vec<Vec<u8>> {
     // A curated set of edge cases.
     let mut extra: Vec<String> = vec![
         // literals
-        "null", "true", "false", "", "  ", "nul", "tru", "fals", "nullx", "truex",
+        "null",
+        "true",
+        "false",
+        "",
+        "  ",
+        "nul",
+        "tru",
+        "fals",
+        "nullx",
+        "truex",
         // numbers
-        "0", "-0", "0.0", "-0.0", "1", "-1", "1.5", "-1.5", "1e5", "1E5", "1e-5",
-        "1e+5", "1.5e300", "-1.5e-300", "1e999", "-1e999", "12345678901234567890123",
-        "2147483647", "2147483648", "-2147483648", "-2147483649", "1e-400",
-        "0.0000000000000000001", "3.141592653589793", "1.", ".5", "+1", "01",
-        "1e", "1e+", "-", "+", "0x10", "1.2.3", "abc", "1e309",
+        "0",
+        "-0",
+        "0.0",
+        "-0.0",
+        "1",
+        "-1",
+        "1.5",
+        "-1.5",
+        "1e5",
+        "1E5",
+        "1e-5",
+        "1e+5",
+        "1.5e300",
+        "-1.5e-300",
+        "1e999",
+        "-1e999",
+        "12345678901234567890123",
+        "2147483647",
+        "2147483648",
+        "-2147483648",
+        "-2147483649",
+        "1e-400",
+        "0.0000000000000000001",
+        "3.141592653589793",
+        "1.",
+        ".5",
+        "+1",
+        "01",
+        "1e",
+        "1e+",
+        "-",
+        "+",
+        "0x10",
+        "1.2.3",
+        "abc",
+        "1e309",
         // strings
-        "\"\"", "\"hello\"", "\"a\\\"b\"", "\"tab\\tnewline\\n\"", "\"\\\\\"",
-        "\"\\/\"", "\"\\b\\f\\r\"", "\"\\u0041\"", "\"\\u00e9\"",
-        "\"\\uD83D\\uDE00\"", "\"\\uD800\"", "\"\\uDC00\"", "\"\\uD83D\\uZZZZ\"",
-        "\"unterminated", "\"", "\"a\\", "\"\\uD83D\\u\"", "invalid\"",
-        "\"\\u1\"", "\"\\u123\"",
+        "\"\"",
+        "\"hello\"",
+        "\"a\\\"b\"",
+        "\"tab\\tnewline\\n\"",
+        "\"\\\\\"",
+        "\"\\/\"",
+        "\"\\b\\f\\r\"",
+        "\"\\u0041\"",
+        "\"\\u00e9\"",
+        "\"\\uD83D\\uDE00\"",
+        "\"\\uD800\"",
+        "\"\\uDC00\"",
+        "\"\\uD83D\\uZZZZ\"",
+        "\"unterminated",
+        "\"",
+        "\"a\\",
+        "\"\\uD83D\\u\"",
+        "invalid\"",
+        "\"\\u1\"",
+        "\"\\u123\"",
         // arrays / objects
-        "[]", "{}", "[1,2,3]", "[ ]", "[1,2,]", "[1,2,3", "[[[[]]]]", "[\"a\",\"b\"]",
-        "{\"a\":1}", "{\"a\":1,}", "{ }", "{\"a\"}", "{\"a\":}", "{:1}", "{1:2}",
-        "{\"a\":1,\"b\":[true,false,null]}", "{\"a\" : 1}", "{\"\\u0061\":1}",
-        "{\"\":0}", "{\"a\":1,\"a\":2}",
+        "[]",
+        "{}",
+        "[1,2,3]",
+        "[ ]",
+        "[1,2,]",
+        "[1,2,3",
+        "[[[[]]]]",
+        "[\"a\",\"b\"]",
+        "{\"a\":1}",
+        "{\"a\":1,}",
+        "{ }",
+        "{\"a\"}",
+        "{\"a\":}",
+        "{:1}",
+        "{1:2}",
+        "{\"a\":1,\"b\":[true,false,null]}",
+        "{\"a\" : 1}",
+        "{\"\\u0061\":1}",
+        "{\"\":0}",
+        "{\"a\":1,\"a\":2}",
         // whitespace / BOM / mixed
-        "  {\"a\":1}  ", "\u{feff}{\"a\":1}", "\t\r\n [1]\t",
-        "null null", "[null, null]", "{}\n{}", "1 2",
+        "  {\"a\":1}  ",
+        "\u{feff}{\"a\":1}",
+        "\t\r\n [1]\t",
+        "null null",
+        "[null, null]",
+        "{}\n{}",
+        "1 2",
         // raw edge cases
-        "\"\\uFFFF\"", "\"\\uDBFF\\uDFFF\"", "\"\\uD800\\uDC00\"",
-        "[1e999]", "{\"x\":1e999}", "{\"n\":null}",
+        "\"\\uFFFF\"",
+        "\"\\uDBFF\\uDFFF\"",
+        "\"\\uD800\\uDC00\"",
+        "[1e999]",
+        "{\"x\":1e999}",
+        "{\"n\":null}",
     ]
     .into_iter()
     .map(String::from)
     .collect();
-    extra.push(format!("[{}]", "[1]," .repeat(500)));
-    extra.push(format!("[{}]", "[1]," .repeat(1100)));
+    extra.push(format!("[{}]", "[1],".repeat(500)));
+    extra.push(format!("[{}]", "[1],".repeat(1100)));
     for s in extra {
         inputs.push(s.into_bytes());
     }
@@ -286,18 +363,18 @@ fn random_json(rng: &mut Rng, depth: usize) -> Vec<u8> {
         0 => out.extend_from_slice(&[&b"null"[..], &b"true"[..], &b"false"[..]][rng.below(3)]),
         1 => {
             // number
-            out.extend_from_slice(b"-" .repeat(rng.below(2)).as_slice());
-            out.extend_from_slice(b"0" .repeat(1 + rng.below(4)).as_slice());
+            out.extend_from_slice(b"-".repeat(rng.below(2)).as_slice());
+            out.extend_from_slice(b"0".repeat(1 + rng.below(4)).as_slice());
             if rng.below(2) == 0 {
                 out.push(b'.');
-                out.extend_from_slice(b"0" .repeat(1 + rng.below(5)).as_slice());
+                out.extend_from_slice(b"0".repeat(1 + rng.below(5)).as_slice());
             }
             if rng.below(2) == 0 {
                 out.push(if rng.below(2) == 0 { b'e' } else { b'E' });
                 if rng.below(2) == 0 {
                     out.push(if rng.below(2) == 0 { b'+' } else { b'-' });
                 }
-                out.extend_from_slice(b"0" .repeat(1 + rng.below(3)).as_slice());
+                out.extend_from_slice(b"0".repeat(1 + rng.below(3)).as_slice());
             }
         }
         2 => {
@@ -313,7 +390,11 @@ fn random_json(rng: &mut Rng, depth: usize) -> Vec<u8> {
                         out.extend_from_slice(&e);
                     }
                     2 => out.extend_from_slice(b"\\u"),
-                    3 => for _ in 0..4 { out.push(b"0123456789abcdefABCDEF"[rng.below(22)]); },
+                    3 => {
+                        for _ in 0..4 {
+                            out.push(b"0123456789abcdefABCDEF"[rng.below(22)]);
+                        }
+                    }
                     4 => out.push(0x7f - rng.below(4) as u8),
                     _ => unreachable!(),
                 }
@@ -393,4 +474,3 @@ fn differential_parse_fuzz() {
         }
     });
 }
-

@@ -396,7 +396,11 @@ unsafe fn detach_item_from_array(array: *mut CJson, mut which: usize) -> *mut CJ
 }
 
 /// `detach_path`: detach an item at the given path.
-unsafe fn detach_path(object: *mut CJson, path: *const u8, case_sensitive: CJsonBool) -> *mut CJson {
+unsafe fn detach_path(
+    object: *mut CJson,
+    path: *const u8,
+    case_sensitive: CJsonBool,
+) -> *mut CJson {
     let parent_pointer = cjson_utils_strdup(path);
     if parent_pointer.is_null() {
         return ptr::null_mut();
@@ -539,11 +543,12 @@ unsafe fn sort_object(object: *mut CJson, case_sensitive: CJsonBool) {
 }
 
 /// `compare_json`.
-unsafe fn compare_json(mut a: *mut CJson, mut b: *mut CJson, case_sensitive: CJsonBool) -> CJsonBool {
-    if a.is_null()
-        || b.is_null()
-        || ((*a).type_ & 0xFF) != ((*b).type_ & 0xFF)
-    {
+unsafe fn compare_json(
+    mut a: *mut CJson,
+    mut b: *mut CJson,
+    case_sensitive: CJsonBool,
+) -> CJsonBool {
+    if a.is_null() || b.is_null() || ((*a).type_ & 0xFF) != ((*b).type_ & 0xFF) {
         /* mismatched type. */
         return 0;
     }
@@ -588,8 +593,11 @@ unsafe fn compare_json(mut a: *mut CJson, mut b: *mut CJson, case_sensitive: CJs
             b = (*b).child;
             while !a.is_null() && !b.is_null() {
                 /* compare object keys */
-                if compare_strings((*a).string as *const u8, (*b).string as *const u8, case_sensitive)
-                    != 0
+                if compare_strings(
+                    (*a).string as *const u8,
+                    (*b).string as *const u8,
+                    case_sensitive,
+                ) != 0
                 {
                     /* missing member */
                     return 0;
@@ -612,7 +620,11 @@ unsafe fn compare_json(mut a: *mut CJson, mut b: *mut CJson, case_sensitive: CJs
 }
 
 /// `insert_item_in_array`: non broken version of `cJSON_InsertItemInArray`.
-unsafe fn insert_item_in_array(array: *mut CJson, mut which: usize, newitem: *mut CJson) -> CJsonBool {
+unsafe fn insert_item_in_array(
+    array: *mut CJson,
+    mut which: usize,
+    newitem: *mut CJson,
+) -> CJsonBool {
     let mut child = (*array).child;
     while !child.is_null() && which > 0 {
         child = (*child).next;
@@ -1028,7 +1040,13 @@ pub unsafe fn cjson_utils_add_patch_to_array(
     path: *const c_char,
     value: *const CJson,
 ) {
-    compose_patch(array, operation as *const u8, path as *const u8, ptr::null(), value);
+    compose_patch(
+        array,
+        operation as *const u8,
+        path as *const u8,
+        ptr::null(),
+        value,
+    );
 }
 
 /// Build `"<path>/<index>"` into a fresh `cJSON_malloc`'d buffer (like
@@ -1090,7 +1108,11 @@ unsafe fn create_patches(
             }
         }
         CJSON_STRING => {
-            if cstr_cmp((*from).valuestring as *const u8, (*to).valuestring as *const u8) != 0 {
+            if cstr_cmp(
+                (*from).valuestring as *const u8,
+                (*to).valuestring as *const u8,
+            ) != 0
+            {
                 compose_patch(patches, b"replace\0".as_ptr(), path, ptr::null(), to);
             }
         }
@@ -1270,7 +1292,8 @@ unsafe fn merge_patch(
             let replacement: *mut CJson;
 
             if case_sensitive != 0 {
-                replace_me = cjson_detach_item_from_object_case_sensitive(target, (*patch_child).string);
+                replace_me =
+                    cjson_detach_item_from_object_case_sensitive(target, (*patch_child).string);
             } else {
                 replace_me = cjson_detach_item_from_object(target, (*patch_child).string);
             }

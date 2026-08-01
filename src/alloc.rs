@@ -108,9 +108,14 @@ pub unsafe fn cjson_realloc(hooks: &InternalHooks, ptr: *mut c_void, size: usize
 /// Allocate and zero a `cJSON` node (cJSON_New_Item).
 #[inline]
 pub unsafe fn cjson_new_item(hooks: &InternalHooks) -> *mut crate::model::CJson {
-    let node = cjson_alloc(hooks, core::mem::size_of::<crate::model::CJson>()) as *mut crate::model::CJson;
+    let node =
+        cjson_alloc(hooks, core::mem::size_of::<crate::model::CJson>()) as *mut crate::model::CJson;
     if !node.is_null() {
-        core::ptr::write_bytes(node as *mut u8, 0, core::mem::size_of::<crate::model::CJson>());
+        core::ptr::write_bytes(
+            node as *mut u8,
+            0,
+            core::mem::size_of::<crate::model::CJson>(),
+        );
     }
     node
 }

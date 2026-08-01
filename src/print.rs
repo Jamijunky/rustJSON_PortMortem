@@ -477,7 +477,8 @@ pub unsafe fn print_object(item: *const CJson, output_buffer: *mut PrintBuffer) 
         update_offset(output_buffer);
 
         // print comma if not last
-        length = if (*output_buffer).format != 0 { 1 } else { 0 } + if (*current_item).next.is_null() { 0 } else { 1 };
+        length = if (*output_buffer).format != 0 { 1 } else { 0 }
+            + if (*current_item).next.is_null() { 0 } else { 1 };
         output_pointer = ensure(output_buffer, length + 1);
         if output_pointer.is_null() {
             return 0;
@@ -497,7 +498,14 @@ pub unsafe fn print_object(item: *const CJson, output_buffer: *mut PrintBuffer) 
         current_item = (*current_item).next;
     }
 
-    output_pointer = ensure(output_buffer, if (*output_buffer).format != 0 { (*output_buffer).depth + 1 } else { 2 });
+    output_pointer = ensure(
+        output_buffer,
+        if (*output_buffer).format != 0 {
+            (*output_buffer).depth + 1
+        } else {
+            2
+        },
+    );
     if output_pointer.is_null() {
         return 0;
     }
@@ -598,7 +606,11 @@ pub unsafe fn cjson_print_unformatted(item: *const CJson) -> *mut c_char {
 }
 
 /// `cJSON_PrintBuffered`.
-pub unsafe fn cjson_print_buffered(item: *const CJson, prebuffer: c_int, fmt: CJsonBool) -> *mut c_char {
+pub unsafe fn cjson_print_buffered(
+    item: *const CJson,
+    prebuffer: c_int,
+    fmt: CJsonBool,
+) -> *mut c_char {
     let mut p = PrintBuffer {
         buffer: ptr::null_mut(),
         length: 0,

@@ -161,7 +161,11 @@ fn round_significant(digits: &[u8], n: i64, p: usize) -> (Vec<u8>, i64) {
     for (i, &d) in digits[p..].iter().enumerate() {
         let h = if i == 0 { b'5' } else { b'0' };
         if d != h {
-            cmp = if d > h { Ordering::Greater } else { Ordering::Less };
+            cmp = if d > h {
+                Ordering::Greater
+            } else {
+                Ordering::Less
+            };
             break;
         }
     }
@@ -379,12 +383,7 @@ mod tests {
     fn matches_libc_snprintf() {
         use core::ffi::{c_char, c_int};
         unsafe extern "C" {
-            fn snprintf(
-                s: *mut c_char,
-                n: usize,
-                format: *const c_char,
-                ...
-            ) -> c_int;
+            fn snprintf(s: *mut c_char, n: usize, format: *const c_char, ...) -> c_int;
         }
         let mut rng = 0x9E3779B97F4A7C15u64;
         for _ in 0..200_000 {
@@ -407,12 +406,9 @@ mod tests {
                 }
                 let theirs = unsafe { core::ffi::CStr::from_ptr(buf.as_ptr()).to_bytes() };
                 assert_eq!(
-                    mine,
-                    theirs,
+                    mine, theirs,
                     "mismatch for {:#016x} (d={:e}) precision {}",
-                    bits,
-                    d,
-                    p
+                    bits, d, p
                 );
             }
         }

@@ -69,8 +69,7 @@ fn patch_test_corpus() -> Vec<(Vec<u8>, Vec<u8>, Option<Vec<u8>>, bool)> {
     let base = std::path::PathBuf::from(&home).join("cjson-ref/tests/json-patch-tests");
     let mut corpus = Vec::new();
     for name in ["tests.json", "spec_tests.json", "cjson-utils-tests.json"] {
-        let data = std::fs::read(base.join(name))
-            .unwrap_or_else(|_| panic!("cannot read {name}"));
+        let data = std::fs::read(base.join(name)).unwrap_or_else(|_| panic!("cannot read {name}"));
         let root = port_parse(&data);
         if root.is_null() {
             continue;
@@ -195,7 +194,10 @@ fn merge_patch_matches_expected() {
         assert!(!patch.is_null(), "merge test {i}: parse patch failed");
 
         let result = unsafe { cjson::ffi::cJSONUtils_MergePatch(target, patch) };
-        assert!(!result.is_null(), "merge test {i}: MergePatch returned NULL");
+        assert!(
+            !result.is_null(),
+            "merge test {i}: MergePatch returned NULL"
+        );
         let expected = port_parse(expected_str.as_bytes());
         assert!(
             port_compare(result, expected),
@@ -254,7 +256,10 @@ fn generate_patches_roundtrip() {
 
         // GeneratePatches sorts `doc` and `expected` in place.
         let gen = unsafe { cjson::ffi::cJSONUtils_GeneratePatchesCaseSensitive(doc, expected) };
-        assert!(!gen.is_null(), "gen test {i}: GeneratePatches returned NULL");
+        assert!(
+            !gen.is_null(),
+            "gen test {i}: GeneratePatches returned NULL"
+        );
 
         let object = unsafe { cjson::ffi::cJSON_Duplicate(doc, 1) };
         assert!(!object.is_null(), "gen test {i}: duplicate failed");
@@ -307,9 +312,7 @@ fn get_pointer_rfc6901() {
     for (ptr_str, expected) in &cases {
         let mut v = ptr_str.to_vec();
         v.push(0);
-        let got = unsafe {
-            cjson::ffi::cJSONUtils_GetPointer(doc, v.as_ptr() as *const c_char)
-        };
+        let got = unsafe { cjson::ffi::cJSONUtils_GetPointer(doc, v.as_ptr() as *const c_char) };
         if *ptr_str == b"" {
             assert_eq!(got, doc, "GetPointer(\"\") should return root");
             continue;
@@ -394,9 +397,8 @@ fn find_pointer_from_object_to_basic() {
     let doc = port_parse(br#"{"numbers":[1,2,3,4,5,6,7,8,9,0]}"#);
     assert!(!doc.is_null());
 
-    let nums = unsafe {
-        cjson::ffi::cJSON_GetObjectItem(doc, b"numbers\0".as_ptr() as *const c_char)
-    };
+    let nums =
+        unsafe { cjson::ffi::cJSON_GetObjectItem(doc, b"numbers\0".as_ptr() as *const c_char) };
     assert!(!nums.is_null());
 
     let num6 = unsafe { cjson::ffi::cJSON_GetArrayItem(nums, 6) };
@@ -419,16 +421,14 @@ fn find_pointer_with_escapes() {
     let doc = port_parse(br#"{"m~n":"val1","m/n":"val2"}"#);
     assert!(!doc.is_null());
 
-    let child_tilde = unsafe {
-        cjson::ffi::cJSON_GetObjectItem(doc, b"m~n\0".as_ptr() as *const c_char)
-    };
+    let child_tilde =
+        unsafe { cjson::ffi::cJSON_GetObjectItem(doc, b"m~n\0".as_ptr() as *const c_char) };
     assert!(!child_tilde.is_null());
     let ptr = our_find_pointer(doc as *const CJson, child_tilde as *const CJson);
     assert_eq!(ptr.as_deref(), Some(b"/m~0n".as_slice()));
 
-    let child_slash = unsafe {
-        cjson::ffi::cJSON_GetObjectItem(doc, b"m/n\0".as_ptr() as *const c_char)
-    };
+    let child_slash =
+        unsafe { cjson::ffi::cJSON_GetObjectItem(doc, b"m/n\0".as_ptr() as *const c_char) };
     assert!(!child_slash.is_null());
     let ptr2 = our_find_pointer(doc as *const CJson, child_slash as *const CJson);
     assert_eq!(ptr2.as_deref(), Some(b"/m~1n".as_slice()));
@@ -576,8 +576,14 @@ fn fuzz_apply_patches_consistency() {
             continue;
         }
         let patch = match rng.below(3) {
-            0 => format!(r#"[{{"op":"add","path":"/fuzz","value":{}}}"#, random_json(&mut rng, 0)),
-            1 => format!(r#"[{{"op":"add","path":"/{}","value":1}}]"#, random_json_string(&mut rng).trim_matches('"')),
+            0 => format!(
+                r#"[{{"op":"add","path":"/fuzz","value":{}}}"#,
+                random_json(&mut rng, 0)
+            ),
+            1 => format!(
+                r#"[{{"op":"add","path":"/{}","value":1}}]"#,
+                random_json_string(&mut rng).trim_matches('"')
+            ),
             _ => "[]".to_string(),
         };
         let p1 = port_parse(patch.as_bytes());
@@ -591,7 +597,10 @@ fn fuzz_apply_patches_consistency() {
         }
         let rc1 = unsafe { cjson::ffi::cJSONUtils_ApplyPatches(doc1, p1) };
         let rc2 = unsafe { cjson::ffi::cJSONUtils_ApplyPatches(doc2, p2) };
-        assert_eq!(rc1, rc2, "ApplyPatches rc mismatch for doc={doc_json}, patch={patch}");
+        assert_eq!(
+            rc1, rc2,
+            "ApplyPatches rc mismatch for doc={doc_json}, patch={patch}"
+        );
         if rc1 == 0 && rc2 == 0 {
             let r1 = port_print(doc1);
             let r2 = port_print(doc2);
@@ -616,7 +625,10 @@ fn fuzz_merge_patch_consistency() {
         let a2 = port_parse(a_json.as_bytes());
         let b2 = port_parse(b_json.as_bytes());
         if a1.is_null() || b1.is_null() || a2.is_null() || b2.is_null() {
-            port_free(a1); port_free(b1); port_free(a2); port_free(b2);
+            port_free(a1);
+            port_free(b1);
+            port_free(a2);
+            port_free(b2);
             continue;
         }
         let r1 = unsafe { cjson::ffi::cJSONUtils_MergePatch(a1, b1) };
@@ -630,8 +642,12 @@ fn fuzz_merge_patch_consistency() {
             assert_eq!(p1, p2, "MergePatch result mismatch");
         }
         // MergePatch consumes its target (a1/a2) and may return it directly.
-        if !r1_null { port_free(r1); }
-        if !r2_null { port_free(r2); }
+        if !r1_null {
+            port_free(r1);
+        }
+        if !r2_null {
+            port_free(r2);
+        }
         port_free(b1);
         port_free(b2);
     }
@@ -651,13 +667,13 @@ fn fuzz_pointer_lookup_consistency() {
             let path = format!("/{}", random_json_string(&mut rng).trim_matches('"'));
             let mut v = path.clone().into_bytes();
             v.push(0);
-            let r1 = unsafe {
-                cjson::ffi::cJSONUtils_GetPointer(doc, v.as_ptr() as *const c_char)
-            };
-            let r2 = unsafe {
-                cjson::ffi::cJSONUtils_GetPointer(doc, v.as_ptr() as *const c_char)
-            };
-            assert_eq!(r1.is_null(), r2.is_null(), "GetPointer null mismatch for {path}");
+            let r1 = unsafe { cjson::ffi::cJSONUtils_GetPointer(doc, v.as_ptr() as *const c_char) };
+            let r2 = unsafe { cjson::ffi::cJSONUtils_GetPointer(doc, v.as_ptr() as *const c_char) };
+            assert_eq!(
+                r1.is_null(),
+                r2.is_null(),
+                "GetPointer null mismatch for {path}"
+            );
             if !r1.is_null() && !r2.is_null() {
                 let p1 = port_print(r1);
                 let p2 = port_print(r2);
