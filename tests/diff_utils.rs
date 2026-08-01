@@ -65,8 +65,8 @@ fn port_free(item: *mut CJson) {
 /// Parse the json-patch-tests corpus files and return
 /// (doc, patch, expected, expects_error) triples, skipping disabled entries.
 fn patch_test_corpus() -> Vec<(Vec<u8>, Vec<u8>, Option<Vec<u8>>, bool)> {
-    let home = std::env::var("HOME").unwrap();
-    let base = std::path::PathBuf::from(&home).join("cjson-ref/tests/json-patch-tests");
+    let base = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("vendor/cjson-ref/tests/json-patch-tests");
     let mut corpus = Vec::new();
     for name in ["tests.json", "spec_tests.json", "cjson-utils-tests.json"] {
         let data = std::fs::read(base.join(name)).unwrap_or_else(|_| panic!("cannot read {name}"));

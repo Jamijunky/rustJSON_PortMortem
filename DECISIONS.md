@@ -39,6 +39,7 @@ This repository is a C-to-Rust port of `DaveGamble/cJSON` v1.7.19.
 
 ## Verification strategy
 
+- `./scripts/verify_vendored.sh`
 - `cargo test`
 - `cargo test --release`
 - `cmake -S harness -B harness/build-utils -DCMAKE_BUILD_TYPE=Release -DENABLE_CJSON_UTILS=ON`
@@ -51,7 +52,10 @@ This repository is a C-to-Rust port of `DaveGamble/cJSON` v1.7.19.
 
 ## Notes for judges
 
-- `build.rs` compiles the reference upstream C sources from `~/cjson-ref`
+- Pristine reference sources are vendored at `vendor/cjson-ref/` (provenance in
+  `HASHES.md`, checksums in `HASHES.txt`, verified by
+  `scripts/verify_vendored.sh`); `build.rs` compiles them there, and the
+  `CJSON_REF_DIR` environment variable can point at another reference checkout
 - The port intentionally mirrors C control flow in the core modules so the
   behavior can be audited against upstream
 - `README.md` summarizes the equivalence evidence and the expected commands

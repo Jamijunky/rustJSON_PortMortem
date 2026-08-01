@@ -1,11 +1,11 @@
 use std::env;
 
 fn main() {
-    let ref_dir = env::var("CJSON_REF_DIR").unwrap_or_else(|_| {
-        let home = env::var("HOME").expect("HOME not set");
-        format!("{home}/cjson-ref")
-    });
     let manifest = env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set");
+    let ref_dir = env::var("CJSON_REF_DIR").unwrap_or_else(|_| {
+        // Vendored pristine upstream sources (see HASHES.md / HASHES.txt).
+        format!("{manifest}/vendor/cjson-ref")
+    });
 
     // The reference library, compiled from the pristine upstream sources with
     // every public symbol prefixed `ref_` (see bench_ref_rename.h). The port

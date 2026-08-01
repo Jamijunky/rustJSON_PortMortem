@@ -210,8 +210,8 @@ fn check_print(input: &[u8]) {
 fn corpus() -> Vec<Vec<u8>> {
     let mut inputs: Vec<Vec<u8>> = Vec::new();
 
-    let home = std::env::var("HOME").unwrap();
-    let inputs_dir = std::path::PathBuf::from(&home).join("cjson-ref/tests/inputs");
+    let inputs_dir =
+        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("vendor/cjson-ref/tests/inputs");
     if let Ok(entries) = std::fs::read_dir(&inputs_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
@@ -221,6 +221,15 @@ fn corpus() -> Vec<Vec<u8>> {
             }
         }
     }
+    assert!(
+        inputs_dir.is_dir(),
+        "vendored reference inputs not found at {}",
+        inputs_dir.display()
+    );
+    assert!(
+        !inputs.is_empty(),
+        "vendored reference inputs directory is empty"
+    );
 
     let extra: Vec<&str> = vec![
         "null",

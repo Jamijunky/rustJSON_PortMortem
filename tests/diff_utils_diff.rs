@@ -151,8 +151,8 @@ fn child_named(item: *mut CJson, key: &[u8]) -> *mut CJson {
 /// text pairs, skipping entries marked `"disabled": true` (mirroring the
 /// upstream test runner).
 fn corpus_entries() -> Vec<(Vec<u8>, Vec<u8>)> {
-    let home = std::env::var("HOME").unwrap();
-    let base = std::path::PathBuf::from(&home).join("cjson-ref/tests/json-patch-tests");
+    let base = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("vendor/cjson-ref/tests/json-patch-tests");
     let mut out = Vec::new();
     for name in ["tests.json", "spec_tests.json", "cjson-utils-tests.json"] {
         let data = std::fs::read(base.join(name)).unwrap_or_else(|_| panic!("cannot read {name}"));

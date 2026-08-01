@@ -49,6 +49,7 @@ Submission-facing docs:
 | `src/utils.rs` | `cJSON_Utils`: pointers, patches, merge patch, sort, generate |
 | `src/ffi.rs` | `#[no_mangle] extern "C"` symbols for the whole public API |
 | `tests/diff_*.rs` | differential tests vs. the compiled reference |
+| `vendor/cjson-ref/` | pristine upstream reference sources (see `HASHES.md`/`HASHES.txt`) |
 | `harness/` | CMake harness; runs the *unmodified* original C test suite |
 
 The Rust sources are a direct port of `cJSON.c` / `cJSON_Utils.c`; function
@@ -59,14 +60,18 @@ port so the differential tests can call both sides.
 
 ## Reference provenance
 
-The reference sources live at `~/cjson-ref` and are **never modified**; SHA-256
-hashes are recorded in `/tmp/cjson_hashes.txt`. `build.rs` compiles
-`cJSON.c` + `cJSON_Utils.c` from there into `libcjson_ref_bench.a` with every
-public symbol prefixed `ref_` (see `bench_ref_rename.h`): the port exports the
-same names via `#[no_mangle]`, so the prefix lets the differential tests and
-the benchmark link the real C alongside the port and always call the genuine
-implementation (verified with `otool`/`nm`, in both debug and release builds).
-`harness/tests/` contains byte-identical copies of the original `tests/*.c`;
+Pristine upstream sources are **vendored** at `vendor/cjson-ref/` — see
+[`HASHES.md`](HASHES.md) for provenance and [`HASHES.txt`](HASHES.txt) for the
+SHA-256 checksums (verify with `scripts/verify_vendored.sh`). They are
+byte-identical to the upstream commit and are **never modified** by this
+project. `build.rs` compiles `cJSON.c` + `cJSON_Utils.c` from there into
+`libcjson_ref_bench.a` with every public symbol prefixed `ref_` (see
+`bench_ref_rename.h`): the port exports the same names via `#[no_mangle]`, so
+the prefix lets the differential tests and the benchmark link the real C
+alongside the port and always call the genuine implementation (verified with
+`otool`/`nm`, in both debug and release builds). The reference directory can
+be overridden with the `CJSON_REF_DIR` environment variable. `harness/tests/`
+contains byte-identical copies of the original `tests/*.c`;
 `harness/cJSON.c` is a new **declarations-only** shim so the originals'
 `#include "../cJSON.c"` resolves to declarations, with all definitions coming
 from the Rust `staticlib`.
@@ -74,6 +79,9 @@ from the Rust `staticlib`.
 ## Building and testing
 
 ```sh
+# Verify the vendored reference sources are pristine
+./scripts/verify_vendored.sh
+
 # Rust tests (includes differential tests vs. the compiled reference C)
 cargo test
 cargo test --release
