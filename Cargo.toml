@@ -1,0 +1,19 @@
+[package]
+name = "cjson-rs"
+version = "0.1.0"
+edition = "2021"
+description = "Faithful Rust port of the cJSON ANSI-C JSON parser/printer"
+license = "MIT"
+
+[lib]
+name = "cjson"
+crate-type = ["rlib", "cdylib", "staticlib"]
+
+[dev-dependencies]
+
+[build-dependencies]
+cc = "1"
+
+[profile.release]
+debug = true
+panic = "abort"

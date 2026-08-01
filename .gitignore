@@ -1,0 +1,5 @@
+/target
+
+# CMake harness build directories
+/harness/build/
+/harness/build-*/
