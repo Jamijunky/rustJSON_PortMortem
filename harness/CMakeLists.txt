@@ -8,7 +8,9 @@ project(cJSON
 # `cjson` because tests/CMakeLists.txt links `${CJSON_LIB}`.
 set(CJSON_LIB cjson)
 
-# Build the Rust port (release, panic=abort) and import it as a static lib.
+# Build the Rust port (release; debug info enabled, unwinding kept intact so
+# the C harness can detect panics at the ABI boundary) and import it as a
+# static lib.
 set(CJSON_RUST_SRC "${CMAKE_CURRENT_SOURCE_DIR}/..")
 set(CJSON_RUST_LIB "${CJSON_RUST_SRC}/target/release/libcjson.a")
 

@@ -21,13 +21,24 @@ cJSON_Utils.c (ref) ───┘                 └──  CMake harness
 ## Results
 
 * **22/22** tests from the original suite pass against the Rust port
-  (`19` core + `3` utils), and **22/22** under AddressSanitizer.
-* **34** Rust unit/integration tests pass (`cargo test`, and also under
+  (`19` core + `3` utils), and **22/22** under AddressSanitizer **and**
+  **22/22** under UndefinedBehaviorSanitizer (reproduce with
+  `scripts/harness_ubsan.sh`).
+* **44** Rust unit/integration tests pass (`cargo test`, and also under
   `cargo test --release`), including differential suites that run the port and
   the compiled reference C library side by side — asserting identical return
   codes and byte-identical output — plus deterministic fuzzers.
+* **2,000,000+** differential fuzz cases across the release campaign
+  (`scripts/fuzz_differential.sh`, default 1M parse + 500k print + 250k
+  manip + 250k utils) pass with zero divergences; a lightweight 5-test
+  always-on fuzz suite (scaled with `CJSON_FUZZ_ITERS`) ships in `cargo test`.
 * **121/121** JSON-Patch corpus entries (from `json-patch-tests`) apply and
   round-trip identically to the reference.
+* **Coverage** of the port logic (measured by `scripts/coverage.sh` with
+  `cargo-llvm-cov`): `parse` 93%, `utils` 93%, `float` 97%, `model` 100%,
+  `manip` 82%, `print` 78%. The remaining gap is dominated by the ABI shims in
+  `ffi.rs`, which are exercised by the C harness rather than Rust tests, and by
+  out-of-memory error paths that need hook injection.
 
 Submission-facing docs:
 
@@ -48,7 +59,7 @@ Submission-facing docs:
 | `src/float.rs` | number parsing/printing (`pow10`, `dtoa`, `print_number`) |
 | `src/utils.rs` | `cJSON_Utils`: pointers, patches, merge patch, sort, generate |
 | `src/ffi.rs` | `#[no_mangle] extern "C"` symbols for the whole public API |
-| `tests/diff_*.rs` | differential tests vs. the compiled reference |
+| `tests/diff_*.rs` | differential tests vs. the compiled reference (scripted, fuzz, and targeted API coverage) |
 | `vendor/cjson-ref/` | pristine upstream reference sources (see `HASHES.md`/`HASHES.txt`) |
 | `harness/` | CMake harness; runs the *unmodified* original C test suite |
 
@@ -105,6 +116,15 @@ cmake -S harness -B harness/build-asan-utils -DCMAKE_BUILD_TYPE=Debug \
       "-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=address"
 cmake --build harness/build-asan-utils
 ASAN_OPTIONS=detect_leaks=0 ctest --test-dir harness/build-asan-utils --output-on-failure
+
+# Same, under UndefinedBehaviorSanitizer (core + utils, via script)
+./scripts/harness_ubsan.sh
+
+# Differential fuzz campaign (default 1M parse cases; use --iters/--seed)
+./scripts/fuzz_differential.sh
+
+# Coverage summary across the test suite
+./scripts/coverage.sh
 
 # Reproducible benchmark summary vs. the reference C implementation
 cargo run --release --bin benchmark
