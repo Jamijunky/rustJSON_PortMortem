@@ -122,6 +122,14 @@ how it is verified.
 - `cmake -S harness -B harness/build-asan-utils -DCMAKE_BUILD_TYPE=Debug -DENABLE_CJSON_UTILS=ON "-DCMAKE_C_FLAGS=-fsanitize=address -fno-omit-frame-pointer" "-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=address"`
 - `cmake --build harness/build-asan-utils`
 - `ASAN_OPTIONS=detect_leaks=0 ctest --test-dir harness/build-asan-utils --output-on-failure`
+- `./scripts/harness_ubsan.sh` (unmodified suite under UndefinedBehaviorSanitizer; the
+  port's Rust code is not instrumented, only the pristine C tests and the ABI boundary)
+- `./scripts/fuzz_differential.sh` (2M differential cases per run, two seeds run; the
+  always-on 5-test fuzz suite ships in `cargo test`, scaled by `CJSON_FUZZ_ITERS`)
+- `./scripts/oracle_check.sh` (independent cross-check against `serde_json`: strict-JSON
+  documents must parse identically; cJSON's documented leniencies are tallied, not failed)
+- `./scripts/coverage.sh` (line coverage via `cargo-llvm-cov`; port-logic modules are
+  82–100% with the targeted `tests/diff_extra.rs` API suite)
 - `cargo run --release --bin benchmark`
 
 ## Notes for judges
