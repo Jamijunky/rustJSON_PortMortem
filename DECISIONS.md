@@ -63,7 +63,6 @@ blocks that rely on C-style undefined behavior for correctness.
 | `parse.rs` | 23 | Hand-rolled tokenizer over NUL-terminated buffers, constructing `CJson` nodes |
 | `print.rs` | 18 | Formatting buffers with `printf` semantics and C-string output (`cJSON_free`-owned) |
 | `alloc.rs` | 11 | `global_hooks` static, hook accessors, `malloc`/`free`/`realloc` FFI |
-| `float.rs` | 3 | `snprintf` FFI used to reproduce the reference's `%.17g` number formatting exactly |
 | `model.rs` | 3 | Hook function-pointer types (`extern "C" fn`) |
 
 ### FFI architecture

@@ -27,7 +27,7 @@ Environment:
 
 - Apple M2, 8 CPU cores, 8 GB RAM, macOS (aarch64)
 - rustc 1.97.1, release build (`-O3`, `--target=arm64-apple-macosx`)
-- Single-threaded; peak RSS 2.0 MiB; total wall time 2.31 s
+- Single-threaded; peak RSS 2.0 MiB; total wall time 2.38 s
 
 ## Results
 
@@ -35,10 +35,10 @@ Median ns/op (p99 in parentheses):
 
 | Workload | Rust | Reference C |
 | --- | ---: | ---: |
-| Parse small JSON, parse + delete | 628.2 (914.4) | 650.8 (686.7) |
-| Print medium JSON, print + free | 13644.2 (16581.8) | 14913.9 (18767.0) |
-| JSON Pointer lookup | 35.1 (35.3) | 43.0 (43.2) |
-| Sort object | 4342.1 (4482.2) | 4284.7 (4369.9) |
+| Parse small JSON, parse + delete | 637.1 (678.2) | 666.2 (669.0) |
+| Print medium JSON, print + free | 14164.5 (24224.1) | 15185.4 (17146.0) |
+| JSON Pointer lookup | 34.9 (35.6) | 42.9 (43.3) |
+| Sort object | 4198.7 (4252.9) | 4298.0 (4388.7) |
 
 ## Interpretation
 
@@ -47,7 +47,7 @@ Median ns/op (p99 in parentheses):
 - Printing and pointer lookup are consistently a few percent faster than the
   reference across runs on this machine; sorting is within a couple of percent.
 - Parsing is within a few percent and the distributions overlap heavily (in
-  this run the Rust median, 628 ns/op, is below the reference 651 ns/op, and
+  this run the Rust median, 637 ns/op, is below the reference 666 ns/op, and
   both fall inside each other's p99 range), i.e. within noise and
   compiler-version variation. Earlier single-sample runs measured parse in
   either direction (e.g. 878.8 vs 843.7 ns/op), confirming parse parity is

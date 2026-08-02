@@ -1,16 +1,16 @@
 //! The print engine: a faithful port of `cJSON.c`'s printer internals,
 //! including the buffer growth semantics of `ensure` and the `%g` number
-//! formatting via [`crate::float::format_g`].
+//! formatting via `snprintf`, exactly as the reference does.
 
 use core::ffi::{c_char, c_double, c_int};
 use core::ptr;
 
 use crate::alloc::{cjson_alloc, cstr_len, current_hooks};
-use crate::float::format_g;
 use crate::model::*;
 
 unsafe extern "C" {
     fn strtod(nptr: *const c_char, endptr: *mut *mut c_char) -> c_double;
+    fn snprintf(s: *mut c_char, n: usize, format: *const c_char, ...) -> c_int;
 }
 
 /// The decimal-point character of the current locale (`.`, in the C locale).
@@ -126,14 +126,16 @@ pub unsafe fn compare_double(a: f64, b: f64) -> bool {
 /// Render `d` with C's `%1.<p>g` semantics into `number_buffer`, returning the
 /// string length, or -1 if it would not fit.
 unsafe fn format_number_g(d: f64, precision: usize, number_buffer: &mut [u8; 26]) -> isize {
-    let mut out = Vec::new();
-    format_g(d, precision, &mut out);
-    if out.len() > number_buffer.len() - 1 {
+    let format = match precision {
+        15 => b"%1.15g\0".as_ptr() as *const c_char,
+        17 => b"%1.17g\0".as_ptr() as *const c_char,
+        _ => return -1,
+    };
+    let length = snprintf(number_buffer.as_mut_ptr() as *mut c_char, 26, format, d);
+    if length < 0 || length as usize >= number_buffer.len() {
         return -1;
     }
-    number_buffer[..out.len()].copy_from_slice(&out);
-    number_buffer[out.len()] = 0;
-    out.len() as isize
+    length as isize
 }
 
 /// `print_number`.

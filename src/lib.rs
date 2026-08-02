@@ -2,7 +2,7 @@
 //!
 //! This crate is organized in two layers:
 //! - a raw, ABI-compatible core ([`model`], [`alloc`], [`parse`], [`print`],
-//!   [`float`], [`manip`]) that mirrors the C implementation byte for byte,
+//!   [`manip`]) that mirrors the C implementation byte for byte,
 //! - an `extern "C"` surface ([`ffi`]) exposing every cJSON symbol so the
 //!   original C test suite can link against the port unmodified.
 
@@ -10,7 +10,6 @@
 
 pub mod alloc;
 pub mod ffi;
-pub mod float;
 pub mod manip;
 pub mod model;
 pub mod parse;

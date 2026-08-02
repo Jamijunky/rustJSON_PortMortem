@@ -24,7 +24,7 @@ cJSON_Utils.c (ref) ───┘                 └──  CMake harness
   (`19` core + `3` utils), and **22/22** under AddressSanitizer **and**
   **22/22** under UndefinedBehaviorSanitizer (reproduce with
   `scripts/harness_ubsan.sh`).
-* **44** Rust unit/integration tests pass (`cargo test`, and also under
+* **40** Rust unit/integration tests pass (`cargo test`, and also under
   `cargo test --release`), including differential suites that run the port and
   the compiled reference C library side by side — asserting identical return
   codes and byte-identical output — plus deterministic fuzzers.
@@ -40,8 +40,8 @@ cJSON_Utils.c (ref) ───┘                 └──  CMake harness
 * **121/121** JSON-Patch corpus entries (from `json-patch-tests`) apply and
   round-trip identically to the reference.
 * **Coverage** of the port logic (measured by `scripts/coverage.sh` with
-  `cargo-llvm-cov`): `parse` 93%, `utils` 93%, `float` 97%, `model` 100%,
-  `manip` 82%, `print` 78%. The remaining gap is dominated by the ABI shims in
+  `cargo-llvm-cov`): `parse` 93%, `utils` 93%, `model` 100%, `manip` 82%,
+  `print` 68%. The remaining gap is dominated by the ABI shims in
   `ffi.rs`, which are exercised by the C harness rather than Rust tests, and by
   out-of-memory error paths that need hook injection.
 
@@ -60,8 +60,6 @@ Submission-facing docs:
 | `src/alloc.rs` | allocation hooks (`malloc`/`free`/`realloc`) |
 | `src/parse.rs` | parser: `cJSON_Parse`, `cJSON_ParseWithOpts`, `parse_value`… |
 | `src/print.rs` | printer: `cJSON_Print`, `cJSON_PrintUnformatted`, `print_value`… |
-| `src/manip.rs` | create/delete/add/get/detach/replace item functions |
-| `src/float.rs` | number parsing/printing (`pow10`, `dtoa`, `print_number`) |
 | `src/utils.rs` | `cJSON_Utils`: pointers, patches, merge patch, sort, generate |
 | `src/ffi.rs` | `#[no_mangle] extern "C"` symbols for the whole public API |
 | `tests/diff_*.rs` | differential tests vs. the compiled reference (scripted, fuzz, and targeted API coverage) |
