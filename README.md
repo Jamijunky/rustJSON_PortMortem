@@ -32,6 +32,11 @@ cJSON_Utils.c (ref) ───┘                 └──  CMake harness
   (`scripts/fuzz_differential.sh`, default 1M parse + 500k print + 250k
   manip + 250k utils) pass with zero divergences; a lightweight 5-test
   always-on fuzz suite (scaled with `CJSON_FUZZ_ITERS`) ships in `cargo test`.
+* **Independent-oracle cross-check** against `serde_json` (an unrelated JSON
+  implementation): every vendored corpus file plus 100k generated documents
+  parse structurally identically; documents serde rejects but the port accepts
+  are exactly cJSON's documented leniencies (raw control bytes in strings,
+  lone surrogates, overflow to infinity), and are reported without failing.
 * **121/121** JSON-Patch corpus entries (from `json-patch-tests`) apply and
   round-trip identically to the reference.
 * **Coverage** of the port logic (measured by `scripts/coverage.sh` with
@@ -122,6 +127,9 @@ ASAN_OPTIONS=detect_leaks=0 ctest --test-dir harness/build-asan-utils --output-o
 
 # Differential fuzz campaign (default 1M parse cases; use --iters/--seed)
 ./scripts/fuzz_differential.sh
+
+# Independent-oracle cross-check vs. serde_json (vendored corpus + 100k generated)
+./scripts/oracle_check.sh
 
 # Coverage summary across the test suite
 ./scripts/coverage.sh
