@@ -134,6 +134,11 @@ how it is verified.
   `tests/` tree by `scripts/verify_harness.sh`, so the "unmodified original
   test suite" claim holds without assuming the judge diffs against the remote
   repository
+- `.gitattributes` marks the vendored / byte-identical upstream C (`vendor/**`,
+  `harness/tests/**`, and the harness root copies of `cJSON.h`,
+  `cJSON_Utils.h`, `test.c`) as `linguist-vendored`, so GitHub's language
+  breakdown reflects the Rust port rather than the third-party code it must
+  contain; nothing is removed — the files remain and are hash-pinned
 - The port intentionally mirrors C control flow in the core modules so the
   behavior can be audited against upstream
 - `README.md` summarizes the equivalence evidence and the expected commands

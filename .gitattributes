@@ -1,0 +1,9 @@
+# GitHub language breakdown: mark vendored / unmodified third-party code so
+# the stats reflect the Rust port itself. Every file matched here is either
+# the pristine upstream reference or byte-identical upstream copies; their
+# provenance is pinned by HASHES.txt and scripts/verify_harness.sh.
+vendor/**            linguist-vendored
+harness/tests/**     linguist-vendored
+harness/cJSON.h      linguist-vendored
+harness/cJSON_Utils.h linguist-vendored
+harness/test.c       linguist-vendored
