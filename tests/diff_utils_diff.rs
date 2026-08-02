@@ -2,7 +2,7 @@
 //!
 //! Every operation is executed against the real reference C library (linked
 //! from the pristine upstream sources with `ref_`-prefixed symbols, see
-//! `bench_ref_rename.h` / build.rs) and against the Rust port (called through
+//! `bench_ref_rename.h` / cjson-ref-sys) and against the Rust port (called through
 //! its internal entry points). The two must produce identical return codes and
 //! byte-identical output for the same input.
 
@@ -20,6 +20,7 @@ use cjson::utils::{
     cjson_utils_generate_patches_case_sensitive, cjson_utils_get_pointer_case_sensitive,
     cjson_utils_merge_patch_case_sensitive, cjson_utils_sort_object_case_sensitive,
 };
+use cjson_ref_sys as _;
 
 // ---- reference C cJSON_Utils (symbol-prefixed, always the real C) ----------
 

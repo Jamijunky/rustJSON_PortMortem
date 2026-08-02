@@ -32,8 +32,9 @@ This repository is a C-to-Rust port of `DaveGamble/cJSON` v1.7.19.
 
 ## Differential and benchmark integrity
 
-- `build.rs` compiles the pristine upstream sources with every public symbol
-  prefixed `ref_` (`bench_ref_rename.h`) into `libcjson_ref_bench.a`. The port
+- The dev-only `cjson-ref-sys` helper crate compiles the pristine upstream
+  sources with every public symbol prefixed `ref_` (`bench_ref_rename.h`) into
+  `libcjson_ref_bench.a`. The port
   exports the same names via `#[no_mangle]`, so without the prefix a release
   build's codegen-units can fold the port's wrappers into the same object as
   the referenced internals, silently satisfying the externs with the port
@@ -71,11 +72,12 @@ blocks that rely on C-style undefined behavior for correctness.
   `cJSON.h`/`cJSON_Utils.h`; the harness links only this Rust `staticlib`, and
   the original C tests call it through the declarations-only `cJSON.c` shim.
   A C port *is* the shared library; a Rust port must opt in per symbol.
-- The reference C is compiled into `libcjson_ref_bench.a` with all public
-  symbols prefixed `ref_` (see `bench_ref_rename.h`). This is a **build-time
-  artifact** so the differential tests and the benchmark can run the genuine
-  implementation beside the port in one process without symbol collisions —
-  it does not change the port's behavior.
+- The reference C is compiled by `cjson-ref-sys` into `libcjson_ref_bench.a`
+  with all public symbols prefixed `ref_` (see `bench_ref_rename.h`). This is
+  a **dev/test-only artifact** so the differential tests and the benchmark can
+  run the genuine implementation beside the port in one process without symbol
+  collisions — it does not change the port's behavior and is not linked into
+  the submitted `libcjson.a` artifact.
 
 ### Global state
 
@@ -129,14 +131,15 @@ how it is verified.
   documents must parse identically; cJSON's documented leniencies are tallied, not failed)
 - `./scripts/coverage.sh` (line coverage via `cargo-llvm-cov`; port-logic modules are
   82–100% with the targeted `tests/diff_extra.rs` API suite)
-- `cargo run --release --bin benchmark`
+- `cargo run --release --example benchmark`
 
 ## Notes for judges
 
 - Pristine reference sources are vendored at `vendor/cjson-ref/` (provenance in
   `HASHES.md`, checksums in `HASHES.txt`, verified by
-  `scripts/verify_vendored.sh`); `build.rs` compiles them there, and the
-  `CJSON_REF_DIR` environment variable can point at another reference checkout
+  `scripts/verify_vendored.sh`); `cjson-ref-sys` compiles them for tests and
+  examples only, and the `CJSON_REF_DIR` environment variable can point at
+  another reference checkout
 - The harness test suite is verified byte-identical to the vendored upstream
   `tests/` tree by `scripts/verify_harness.sh`, so the "unmodified original
   test suite" claim holds without assuming the judge diffs against the remote

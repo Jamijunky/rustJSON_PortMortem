@@ -17,7 +17,6 @@ set(CJSON_RUST_LIB "${CJSON_RUST_SRC}/target/release/libcjson.a")
 # Re-run `cargo build --release` whenever the Rust sources change.
 file(GLOB CJSON_RUST_SOURCES
     "${CJSON_RUST_SRC}/src/*.rs"
-    "${CJSON_RUST_SRC}/build.rs"
     "${CJSON_RUST_SRC}/Cargo.toml")
 
 add_custom_command(

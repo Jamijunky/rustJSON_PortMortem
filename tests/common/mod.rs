@@ -1,5 +1,5 @@
 //! Shared deterministic input generators and differential comparison helpers
-//! used by `tests/diff_fuzz.rs` and `src/bin/fuzz_differential.rs`.
+//! used by `tests/diff_fuzz.rs` and `examples/fuzz_differential.rs`.
 //!
 //! The generators deliberately push the hard parts of JSON parsing/printing:
 //! extreme numbers, escapes and surrogate pairs, multi-byte UTF-8, deep

@@ -9,6 +9,7 @@ use std::sync::{Mutex, OnceLock};
 use cjson::manip::*;
 use cjson::model::CJson;
 use cjson::print::cjson_print_unformatted;
+use cjson_ref_sys as _;
 
 fn with_lock<R>(f: impl FnOnce() -> R) -> R {
     static LOCK: OnceLock<Mutex<()>> = OnceLock::new();

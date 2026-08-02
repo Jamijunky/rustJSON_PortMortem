@@ -1,11 +1,11 @@
 //! Heavy differential fuzzing campaign against the reference C cJSON.
 //!
-//! Run with `cargo run --release --bin fuzz_differential -- --iters 1000000`
+//! Run with `cargo run --release --example fuzz_differential -- --iters 1000000`
 //! (or use `scripts/fuzz_differential.sh`). Every generated input is replayed
 //! through the Rust port and the real C; any divergence panics and the
 //! offending input is written to `fuzz_fail.txt`.
 
-#[path = "../../tests/common/mod.rs"]
+#[path = "../tests/common/mod.rs"]
 mod fuzzgen;
 
 use std::ffi::{c_char, c_int, c_void};
@@ -30,6 +30,7 @@ use cjson::utils::{
     cjson_utils_apply_patches_case_sensitive, cjson_utils_get_pointer_case_sensitive,
     cjson_utils_merge_patch_case_sensitive, cjson_utils_sort_object_case_sensitive,
 };
+use cjson_ref_sys as _;
 
 #[link(name = "cjson_ref_bench")]
 unsafe extern "C" {

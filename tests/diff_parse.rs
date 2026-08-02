@@ -8,6 +8,7 @@ use std::sync::{Mutex, OnceLock};
 use cjson::manip::cjson_delete;
 use cjson::model::CJson;
 use cjson::parse::{cjson_parse_with_length_opts, get_error_ptr};
+use cjson_ref_sys as _;
 
 /// The reference C cJSON keeps global parse state (`global_error`,
 /// `global_hooks`). Serialize every differential run so parallel test threads

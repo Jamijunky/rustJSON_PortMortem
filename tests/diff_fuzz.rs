@@ -1,7 +1,7 @@
 //! Differential fuzzing against the reference C cJSON, always-on as part of
 //! `cargo test`. The default iteration budget is small so the suite stays
 //! fast; set `CJSON_FUZZ_ITERS` to scale up (the heavy campaign lives in
-//! `src/bin/fuzz_differential.rs`, run by `scripts/fuzz_differential.sh`).
+//! `examples/fuzz_differential.rs`, run by `scripts/fuzz_differential.sh`).
 
 mod common;
 
@@ -27,6 +27,7 @@ use cjson::utils::{
     cjson_utils_apply_patches_case_sensitive, cjson_utils_get_pointer_case_sensitive,
     cjson_utils_merge_patch_case_sensitive, cjson_utils_sort_object_case_sensitive,
 };
+use cjson_ref_sys as _;
 
 /// The reference C cJSON keeps global parse state (`global_error`,
 /// `global_hooks`). Serialize every differential run so parallel test threads

@@ -11,6 +11,7 @@ use cjson::parse::cjson_parse_with_length_opts;
 use cjson::print::{
     cjson_print, cjson_print_buffered, cjson_print_preallocated, cjson_print_unformatted,
 };
+use cjson_ref_sys as _;
 
 fn with_lock<R>(f: impl FnOnce() -> R) -> R {
     static LOCK: OnceLock<Mutex<()>> = OnceLock::new();

@@ -13,10 +13,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "cjson-rs"
+name = "cjson-ref-sys"
 version = "0.1.0"
 dependencies = [
  "cc",
+]
+
+[[package]]
+name = "cjson-rs"
+version = "0.1.0"
+dependencies = [
+ "cjson-ref-sys",
  "serde",
  "serde_json",
 ]

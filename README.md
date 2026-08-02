@@ -78,7 +78,8 @@ Pristine upstream sources are **vendored** at `vendor/cjson-ref/` — see
 [`HASHES.md`](HASHES.md) for provenance and [`HASHES.txt`](HASHES.txt) for the
 SHA-256 checksums (verify with `scripts/verify_vendored.sh`). They are
 byte-identical to the upstream commit and are **never modified** by this
-project. `build.rs` compiles `cJSON.c` + `cJSON_Utils.c` from there into
+project. The dev-only `cjson-ref-sys` helper crate compiles `cJSON.c` +
+`cJSON_Utils.c` from there into
 `libcjson_ref_bench.a` with every public symbol prefixed `ref_` (see
 `bench_ref_rename.h`): the port exports the same names via `#[no_mangle]`, so
 the prefix lets the differential tests and the benchmark link the real C
@@ -133,7 +134,7 @@ ASAN_OPTIONS=detect_leaks=0 ctest --test-dir harness/build-asan-utils --output-o
 ./scripts/coverage.sh
 
 # Reproducible benchmark summary vs. the reference C implementation
-cargo run --release --bin benchmark
+cargo run --release --example benchmark
 ```
 
 ## Equivalence notes

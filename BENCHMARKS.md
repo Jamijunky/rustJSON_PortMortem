@@ -3,11 +3,12 @@
 Reproducible benchmark command:
 
 ```sh
-cargo run --release --bin benchmark
+cargo run --release --example benchmark
 ```
 
 The reference C side is linked from the pristine upstream sources compiled
-with every public symbol prefixed `ref_` (see `bench_ref_rename.h`), so the
+with every public symbol prefixed `ref_` (see `bench_ref_rename.h`) by the
+dev-only `cjson-ref-sys` helper crate, so the
 Rust port (called through its internal entry points) and the real C run in
 the same process. This was verified with `otool`/`nm`: `ref_cJSON_ParseWithLengthOpts`
 is the real C parser, not a branch into the port.
@@ -27,7 +28,7 @@ Environment:
 
 - Apple M2, 8 CPU cores, 8 GB RAM, macOS (aarch64)
 - rustc 1.97.1, release build (`-O3`, `--target=arm64-apple-macosx`)
-- Single-threaded; peak RSS 2.0 MiB; total wall time 2.38 s
+- Single-threaded; peak RSS 2.0 MiB; total wall time 2.25 s
 
 ## Results
 
@@ -35,10 +36,10 @@ Median ns/op (p99 in parentheses):
 
 | Workload | Rust | Reference C |
 | --- | ---: | ---: |
-| Parse small JSON, parse + delete | 637.1 (678.2) | 666.2 (669.0) |
-| Print medium JSON, print + free | 14164.5 (24224.1) | 15185.4 (17146.0) |
-| JSON Pointer lookup | 34.9 (35.6) | 42.9 (43.3) |
-| Sort object | 4198.7 (4252.9) | 4298.0 (4388.7) |
+| Parse small JSON, parse + delete | 624.6 (799.7) | 666.6 (673.3) |
+| Print medium JSON, print + free | 14024.3 (14141.9) | 14967.4 (16555.1) |
+| JSON Pointer lookup | 35.3 (36.2) | 43.5 (43.9) |
+| Sort object | 4101.6 (4113.9) | 4287.2 (4331.2) |
 
 ## Interpretation
 
@@ -47,7 +48,7 @@ Median ns/op (p99 in parentheses):
 - Printing and pointer lookup are consistently a few percent faster than the
   reference across runs on this machine; sorting is within a couple of percent.
 - Parsing is within a few percent and the distributions overlap heavily (in
-  this run the Rust median, 637 ns/op, is below the reference 666 ns/op, and
+  this run the Rust median, 625 ns/op, is below the reference 667 ns/op, and
   both fall inside each other's p99 range), i.e. within noise and
   compiler-version variation. Earlier single-sample runs measured parse in
   either direction (e.g. 878.8 vs 843.7 ns/op), confirming parse parity is

@@ -1,8 +1,9 @@
 # Reference sources — provenance and checksums
 
 These are pristine copies of the upstream cJSON v1.7.19 reference sources
-used by `build.rs`, the differential tests, and the harness. They are
-byte-identical to the upstream commit and are never modified by this project.
+used by the `cjson-ref-sys` dev helper crate, the differential tests, and the
+harness. They are byte-identical to the upstream commit and are never modified
+by this project.
 
 - Upstream: https://github.com/DaveGamble/cJSON
 - Commit:   `fb16e5cf358798aabb049655975cde8427101056` (v1.7.19)

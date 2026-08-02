@@ -12,6 +12,7 @@ use std::sync::{Mutex, OnceLock};
 use cjson::manip::*;
 use cjson::model::CJson;
 use cjson::print::cjson_print_unformatted;
+use cjson_ref_sys as _;
 
 fn with_lock<R>(f: impl FnOnce() -> R) -> R {
     static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
@@ -304,7 +305,7 @@ fn via_pointer_ops_match_reference_c() {
     with_lock(|| {
         // detach first / middle / last / single-child element
         for n in [1usize, 3, 5] {
-            let mut detach = |idx: c_int| {
+            let detach = |idx: c_int| {
                 let o = unsafe { cjson_create_array() };
                 let r = unsafe { ref_cJSON_CreateArray() };
                 for i in 0..n as i32 {

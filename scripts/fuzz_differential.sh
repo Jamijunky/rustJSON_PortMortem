@@ -12,4 +12,4 @@ set -eu
 cd "$(dirname "$0")/.."
 iters="${1:-1000000}"
 seed="${2:-0xFEEDBEEF}"
-cargo run --release --bin fuzz_differential -- --iters "$iters" --seed "$seed"
+cargo run --release --example fuzz_differential -- --iters "$iters" --seed "$seed"

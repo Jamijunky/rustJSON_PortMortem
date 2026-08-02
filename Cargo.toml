@@ -9,12 +9,10 @@ license = "MIT"
 name = "cjson"
 crate-type = ["rlib", "cdylib", "staticlib"]
 
-[dev-dependencies]
-
-[build-dependencies]
-cc = "1"
-
 [dependencies]
+
+[dev-dependencies]
+cjson-ref-sys = { path = "cjson-ref-sys" }
 serde = "1"
 serde_json = { version = "1", features = ["unbounded_depth"] }
 

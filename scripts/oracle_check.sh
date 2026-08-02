@@ -33,4 +33,4 @@ for f in \
     inputs+=("$f")
 done
 
-exec cargo run --release --bin oracle_check -- "${inputs[@]}" --gen "$gen"
+exec cargo run --release --example oracle_check -- "${inputs[@]}" --gen "$gen"

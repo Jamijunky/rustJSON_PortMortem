@@ -10,8 +10,9 @@ use cjson::print::cjson_print_unformatted;
 use cjson::utils::{
     cjson_utils_get_pointer_case_sensitive, cjson_utils_sort_object_case_sensitive,
 };
+use cjson_ref_sys as _;
 
-// The reference C library, compiled by build.rs from the pristine upstream
+// The reference C library, compiled by cjson-ref-sys from the pristine upstream
 // sources with every public symbol prefixed `ref_` (see bench_ref_rename.h),
 // so these externs resolve to the real C even though the port exports the
 // same names via `#[no_mangle]`. The port side is called through its mangled
