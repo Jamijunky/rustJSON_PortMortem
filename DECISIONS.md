@@ -12,7 +12,12 @@ This repository is a C-to-Rust port of `DaveGamble/cJSON` v1.7.19.
 ## What was kept faithful
 
 - Public ABI and symbol names mirror `cJSON.h` / `cJSON_Utils.h`
-- The original cJSON test suite is preserved under `harness/tests/`
+- The original cJSON test suite is preserved under `harness/tests/` and is
+  pinned byte-for-byte to the upstream commit: `scripts/verify_harness.sh`
+  diffs `harness/tests/**` against the vendored upstream `tests/` tree and
+  `cmp`s the harness root shims (`cJSON.h`, `cJSON_Utils.h`, `test.c`) against
+  the vendored originals, while `scripts/verify_vendored.sh` pins the vendored
+  tree to the upstream commit via SHA-256 (`HASHES.txt`, 185 files).
 - The harness uses a declarations-only `harness/cJSON.c` shim so the
   original tests link against the Rust `staticlib`
 - Differential tests run the Rust port and the compiled upstream C
@@ -40,6 +45,7 @@ This repository is a C-to-Rust port of `DaveGamble/cJSON` v1.7.19.
 ## Verification strategy
 
 - `./scripts/verify_vendored.sh`
+- `./scripts/verify_harness.sh`
 - `cargo test`
 - `cargo test --release`
 - `cmake -S harness -B harness/build-utils -DCMAKE_BUILD_TYPE=Release -DENABLE_CJSON_UTILS=ON`
@@ -56,6 +62,10 @@ This repository is a C-to-Rust port of `DaveGamble/cJSON` v1.7.19.
   `HASHES.md`, checksums in `HASHES.txt`, verified by
   `scripts/verify_vendored.sh`); `build.rs` compiles them there, and the
   `CJSON_REF_DIR` environment variable can point at another reference checkout
+- The harness test suite is verified byte-identical to the vendored upstream
+  `tests/` tree by `scripts/verify_harness.sh`, so the "unmodified original
+  test suite" claim holds without assuming the judge diffs against the remote
+  repository
 - The port intentionally mirrors C control flow in the core modules so the
   behavior can be audited against upstream
 - `README.md` summarizes the equivalence evidence and the expected commands

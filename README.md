@@ -74,13 +74,20 @@ be overridden with the `CJSON_REF_DIR` environment variable. `harness/tests/`
 contains byte-identical copies of the original `tests/*.c`;
 `harness/cJSON.c` is a new **declarations-only** shim so the originals'
 `#include "../cJSON.c"` resolves to declarations, with all definitions coming
-from the Rust `staticlib`.
+from the Rust `staticlib`. `scripts/verify_harness.sh` asserts the harness
+suite is byte-identical to the vendored upstream `tests/` tree (the full
+`tests/` directory is vendored, not just the implementation), and
+`scripts/verify_vendored.sh` pins that tree to the upstream commit by checksum —
+so the "unmodified original suite" claim is mechanically checkable.
 
 ## Building and testing
 
 ```sh
 # Verify the vendored reference sources are pristine
 ./scripts/verify_vendored.sh
+
+# Verify the harness test suite is byte-identical to the vendored originals
+./scripts/verify_harness.sh
 
 # Rust tests (includes differential tests vs. the compiled reference C)
 cargo test
