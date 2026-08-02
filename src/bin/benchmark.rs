@@ -32,6 +32,27 @@ unsafe extern "C" {
     ) -> *mut CJson;
     fn ref_cJSONUtils_SortObjectCaseSensitive(object: *mut CJson);
     fn free(ptr: *mut c_void);
+    // POSIX getrusage(2); on macOS ru_maxrss is in bytes. The struct is only
+    // indexed for ru_maxrss (the 5th field: two timevals, then ru_maxrss).
+    fn getrusage(who: c_int, usage: *mut Rusage) -> c_int;
+}
+
+#[repr(C)]
+struct Rusage([i64; 16]);
+
+fn peak_rss_bytes() -> u64 {
+    let mut usage = Rusage([0; 16]);
+    unsafe {
+        getrusage(0, &mut usage);
+    }
+    usage.0[4] as u64
+}
+
+const SAMPLES: usize = 5;
+
+fn percentile(sorted: &[f64], p: f64) -> f64 {
+    let idx = ((p / 100.0) * (sorted.len() as f64 - 1.0)).round() as usize;
+    sorted[idx]
 }
 
 fn with_nul(s: &str) -> Vec<u8> {
@@ -119,14 +140,25 @@ fn ref_sort(object: *mut CJson) {
 }
 
 fn measure(label: &str, iters: usize, mut f: impl FnMut()) {
-    let start = Instant::now();
-    for _ in 0..iters {
+    let warmup = (iters / 4).max(1);
+    for _ in 0..warmup {
         f();
     }
-    let elapsed = start.elapsed();
-    let total_ms = elapsed.as_secs_f64() * 1_000.0;
-    let ns_per = elapsed.as_nanos() as f64 / iters as f64;
-    println!("{label:<30} {iters:>8} iters  {total_ms:>10.2} ms  {ns_per:>10.1} ns/op");
+    let mut samples: Vec<f64> = Vec::with_capacity(SAMPLES);
+    for _ in 0..SAMPLES {
+        let start = Instant::now();
+        for _ in 0..iters {
+            f();
+        }
+        samples.push(start.elapsed().as_nanos() as f64 / iters as f64);
+    }
+    samples.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    let median = samples[SAMPLES / 2];
+    let p99 = percentile(&samples, 99.0);
+    let total_ms = samples.iter().sum::<f64>() * iters as f64 / 1_000_000.0;
+    println!(
+        "{label:<30} {SAMPLES} x {iters:>8} iters  median {median:>10.1} ns/op  p99 {p99:>10.1} ns/op  {total_ms:>10.2} ms"
+    );
 }
 
 fn main() {
@@ -137,8 +169,11 @@ fn main() {
     let unsorted = with_nul(&unsorted_json());
     let pointer = with_nul("/items/37/name");
 
+    let started = Instant::now();
     println!("cjson-rs benchmark harness");
-    println!("release build, single-threaded, one sample per workload");
+    println!(
+        "release build, single-threaded, warm-up + {SAMPLES} samples per workload (median / p99)"
+    );
 
     measure("rust parse small", 40_000, || {
         let item = rust_parse(&small);
@@ -214,4 +249,11 @@ fn main() {
             unsafe { ref_cJSON_Delete(item) };
         }
     });
+
+    let total_s = started.elapsed().as_secs_f64();
+    println!(
+        "peak RSS: {:.1} MiB   total wall time: {:.2} s",
+        peak_rss_bytes() as f64 / (1024.0 * 1024.0),
+        total_s
+    );
 }
