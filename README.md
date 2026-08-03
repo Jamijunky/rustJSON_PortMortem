@@ -41,9 +41,13 @@ cJSON_Utils.c (ref) ───┘                 └──  CMake harness
   round-trip identically to the reference.
 * **Coverage** of the port logic (measured by `scripts/coverage.sh` with
   `cargo-llvm-cov`): `parse` 93%, `utils` 93%, `model` 100%, `manip` 82%,
-  `print` 68%. The remaining gap is dominated by the ABI shims in
-  `ffi.rs`, which are exercised by the C harness rather than Rust tests, and by
-  out-of-memory error paths that need hook injection.
+  `print` 84%. `tests/diff_print_edge.rs` targets the print paths JSON text
+  alone cannot reach: NaN/±Inf numbers, raw nodes, nesting past the 1000-item
+  limit, invalid type flags, `%1.17g`-escalating doubles, the full control-byte
+  escape table, and `PrintPreallocated` buffer truncation. The remaining gap is
+  dominated by the ABI shims in `ffi.rs`, which are exercised by the C harness
+  rather than Rust tests, and by out-of-memory error paths that need hook
+  injection.
 
 Submission-facing docs:
 
@@ -96,6 +100,15 @@ suite is byte-identical to the vendored upstream `tests/` tree (the full
 so the "unmodified original suite" claim is mechanically checkable.
 
 ## Building and testing
+
+Everything below runs in order with one command (`VERIFY_ITERS` scales the
+fuzz phase, e.g. `VERIFY_ITERS=100000`):
+
+```sh
+./scripts/verify.sh
+```
+
+Individually:
 
 ```sh
 # Verify the vendored reference sources are pristine

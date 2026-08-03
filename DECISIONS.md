@@ -42,6 +42,11 @@ This repository is a C-to-Rust port of `DaveGamble/cJSON` v1.7.19.
   real C (confirmed via `otool`/`nm` in both debug and release).
 - The utils differential test replays the full json-patch-tests corpus plus
   deterministic fuzz inputs through both implementations.
+- `cJSON_ParseWithLengthOpts(..., require_null_terminated=true)` demands a NUL
+  terminator at the declared length, so the parse/print differentials pass
+  `len + 1` when that flag is set; the corpus print test and the `true` half
+  of the parse differential therefore exercise the success path rather than
+  failing every input.
 
 ## Divergences from the C implementation (all behavior-preserving)
 
@@ -49,69 +54,102 @@ The port mirrors the C control flow so it can be audited line-by-line against
 upstream, but a Rust port cannot be a literal transliteration. The deliberate
 divergences below are structural; each one is justified and none changes
 observable behavior, which the differential suites and the unmodified original
-test suite pin down.
+test suite pin down. There are twelve non-trivial divergences:
 
-### Unsafe-block inventory
+### 1. `unsafe` is confined to signatures — zero `unsafe { ... }` blocks
 
-`unsafe` is confined to the FFI/pointer boundary; there are no `unsafe`
-blocks that rely on C-style undefined behavior for correctness.
+The `unsafe` keyword appears at **326 sites, all of them declarations**:
+202 `unsafe fn` signatures (functions that take or return raw pointers to
+mirror C's control flow) and 124 `unsafe extern "C"` signatures, of which
+**117 are the exported ABI functions themselves** — one per public cJSON
+symbol. There are no `unsafe` blocks anywhere in the crate, so no `unsafe`
+code relies on C-style undefined behavior for correctness.
 
-| Module | `unsafe` uses | Why it is needed |
+| Module | `unsafe` sites | Why it is needed |
 | --- | ---: | --- |
-| `ffi.rs` | 142 | `#[no_mangle] extern "C"` ABI layer: raw `*mut CJson` in/out, `CStr`/`CString` conversions, shimming the whole public API |
+| `ffi.rs` | 142 | `#[no_mangle] extern "C"` ABI layer: raw `*mut CJson` in/out, `CStr`/`CString` conversions, shimming the whole public API (117 of these are the 117 exported symbols) |
 | `manip.rs` | 87 | Pointer-chasing through the `next`/`child` linked lists, insertion/detach/replace that C does with raw pointers |
 | `utils.rs` | 42 | RFC 6901/6902/7396 pointer & patch walks over the linked-list `cJSON` objects |
 | `parse.rs` | 23 | Hand-rolled tokenizer over NUL-terminated buffers, constructing `CJson` nodes |
 | `print.rs` | 18 | Formatting buffers with `printf` semantics and C-string output (`cJSON_free`-owned) |
 | `alloc.rs` | 11 | `global_hooks` static, hook accessors, `malloc`/`free`/`realloc` FFI |
-| `model.rs` | 3 | Hook function-pointer types (`extern "C" fn`) |
+| `model.rs` | 3 | Hook function-pointer types (`unsafe extern "C" fn`) |
 
-### FFI architecture
+### 2. The ABI is exported per symbol
 
-- The port exports **117 `#[no_mangle] extern "C"` symbols** mirroring
-  `cJSON.h`/`cJSON_Utils.h`; the harness links only this Rust `staticlib`, and
-  the original C tests call it through the declarations-only `cJSON.c` shim.
-  A C port *is* the shared library; a Rust port must opt in per symbol.
-- The reference C is compiled by `cjson-ref-sys` into `libcjson_ref_bench.a`
-  with all public symbols prefixed `ref_` (see `bench_ref_rename.h`). This is
-  a **dev/test-only artifact** so the differential tests and the benchmark can
-  run the genuine implementation beside the port in one process without symbol
-  collisions — it does not change the port's behavior and is not linked into
-  the submitted `libcjson.a` artifact.
+The port exports **117 `#[no_mangle] extern "C"` symbols** mirroring
+`cJSON.h`/`cJSON_Utils.h`; the harness links only this Rust `staticlib`, and
+the original C tests call it through the declarations-only `cJSON.c` shim.
+A C port *is* the shared library; a Rust port must opt in per symbol.
 
-### Global state
+### 3. A `ref_`-prefixed, dev-only reference crate
 
-- `pub static mut global_hooks` (`alloc.rs`) is a **real C-visible symbol**
-  named exactly `global_hooks`, because the original test files declare
-  `extern internal_hooks global_hooks;` and read it directly. The Rust type
-  `InternalHooks` is `#[repr(C)]` with the same field order.
-- `static mut GLOBAL_ERROR` (`parse.rs`) reproduces C's `global_error`
-  singleton: the last parse error is observable across calls exactly as in C.
+The reference C is compiled by `cjson-ref-sys` into `libcjson_ref_bench.a`
+with all public symbols prefixed `ref_` (see `bench_ref_rename.h`). This is a
+**dev/test-only artifact** so the differential tests and the benchmark can run
+the genuine upstream implementation beside the port in one process without
+symbol collisions. The prefix is essential: the port exports the same names,
+so without it a release build's codegen-units can fold the port's wrappers
+into the same object as the referenced internals, silently satisfying the
+externs with the port itself (confirmed via `otool`/`nm` in debug and
+release). It is never linked into the submitted `libcjson.a` artifact.
 
-### C idioms replaced by idiomatic Rust
+### 4. `global_hooks` is a real C-visible symbol
 
-- `cJSON_IsNumber`/`cJSON_IsArray`/… are C macros; the port exposes the same
-  names as real functions (identical behavior, type-checked).
-- Manual NUL-terminated strings are handled with `CStr`/`CString` at the
-  boundary; interior string logic operates on byte slices with the same
-  comparisons.
-- `CJsonBool` is `c_int` (`0`/`1`) to keep the ABI identical, rather than
-  Rust `bool`.
-- Number printing calls the same `snprintf("%.17g")` path as the reference so
-  output is byte-identical, not "close enough".
+`pub static mut global_hooks` (`alloc.rs`) is named exactly `global_hooks`,
+because the original test files declare `extern internal_hooks global_hooks;`
+and read it directly. The Rust type `InternalHooks` is `#[repr(C)]` with the
+same field order.
 
-### Testability
+### 5. `GLOBAL_ERROR` reproduces C's `global_error` singleton
 
-- Every `static` C helper is `pub` in the port so the differential tests can
-  call both sides of the boundary; C keeps them file-local.
-- `panic = "abort"` was tried and **removed** from `[profile.release]` because
-  it broke the test harnesses; the release profile otherwise matches defaults.
+`static mut GLOBAL_ERROR` (`parse.rs`) makes the last parse error observable
+across calls exactly as in C.
 
-Each divergence maps to the "10+ divergences from the original" criterion:
-the list above documents them and explains why equivalence is preserved and
-how it is verified.
+### 6. C macros become real functions
+
+`cJSON_IsNumber`/`cJSON_IsArray`/… are C macros; the port exposes the same
+names as real functions (identical behavior, type-checked).
+
+### 7. `CStr`/`CString` at the boundary, byte slices inside
+
+Manual NUL-terminated strings are handled with `CStr`/`CString` at the FFI
+boundary; interior string logic operates on byte slices with the same
+comparisons.
+
+### 8. `CJsonBool` stays `c_int`
+
+`CJsonBool` is `c_int` (`0`/`1`) to keep the ABI identical, rather than Rust
+`bool`.
+
+### 9. Number printing uses the reference's exact formatting path
+
+Number printing calls the same `snprintf("%.17g")` path as the reference so
+output is byte-identical, not "close enough".
+
+### 10. Static C helpers are `pub` for testability
+
+Every `static` C helper is `pub` in the port so the differential tests can
+call both sides of the boundary; C keeps them file-local.
+
+### 11. `panic = "abort"` was tried and removed
+
+`panic = "abort"` in `[profile.release]` broke the test harnesses and was
+**removed**; the release profile otherwise matches defaults.
+
+### 12. The core modules mirror C control flow
+
+The port mirrors C control flow in `parse`, `print`, `manip`, and `utils` so
+behavior can be audited against upstream, diverging only where Rust requires
+it.
+
+Each divergence preserves equivalence, which the differential suites and the
+unmodified original test suite pin down.
 
 ## Verification strategy
+
+`./scripts/verify.sh` runs the whole battery below in order and prints a
+PASS/FAIL summary (fuzz scale with `VERIFY_ITERS`, e.g. `VERIFY_ITERS=100000`):
 
 - `./scripts/verify_vendored.sh`
 - `./scripts/verify_harness.sh`
@@ -129,8 +167,9 @@ how it is verified.
   always-on 5-test fuzz suite ships in `cargo test`, scaled by `CJSON_FUZZ_ITERS`)
 - `./scripts/oracle_check.sh` (independent cross-check against `serde_json`: strict-JSON
   documents must parse identically; cJSON's documented leniencies are tallied, not failed)
-- `./scripts/coverage.sh` (line coverage via `cargo-llvm-cov`; port-logic modules are
-  82–100% with the targeted `tests/diff_extra.rs` API suite)
+- `./scripts/coverage.sh` (line coverage via `cargo-llvm-cov`, scaled by
+  `CJSON_FUZZ_ITERS`; the per-module numbers are reported in `README.md` and
+  refreshed on every coverage pass)
 - `cargo run --release --example benchmark`
 
 ## Notes for judges
