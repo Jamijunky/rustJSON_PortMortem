@@ -19,9 +19,16 @@ file(GLOB CJSON_RUST_SOURCES
     "${CJSON_RUST_SRC}/src/*.rs"
     "${CJSON_RUST_SRC}/Cargo.toml")
 
+# Locate cargo: prefer PATH, then the default rustup location.
+find_program(CJSON_CARGO NAMES cargo PATHS "$ENV{HOME}/.cargo/bin" NO_DEFAULT_PATH)
+find_program(CJSON_CARGO NAMES cargo)
+if(NOT CJSON_CARGO)
+    message(FATAL_ERROR "cargo not found; set CJSON_CARGO or PATH to the Rust toolchain")
+endif()
+
 add_custom_command(
     OUTPUT "${CJSON_RUST_LIB}"
-    COMMAND "$ENV{HOME}/.cargo/bin/cargo" build --release
+    COMMAND "${CJSON_CARGO}" build --release
     WORKING_DIRECTORY "${CJSON_RUST_SRC}"
     COMMENT "Building the Rust cJSON port (cargo build --release)"
     DEPENDS ${CJSON_RUST_SOURCES}

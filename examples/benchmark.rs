@@ -33,8 +33,9 @@ unsafe extern "C" {
     ) -> *mut CJson;
     fn ref_cJSONUtils_SortObjectCaseSensitive(object: *mut CJson);
     fn free(ptr: *mut c_void);
-    // POSIX getrusage(2); on macOS ru_maxrss is in bytes. The struct is only
-    // indexed for ru_maxrss (the 5th field: two timevals, then ru_maxrss).
+    // POSIX getrusage(2). The struct is only indexed for ru_maxrss (the 5th
+    // field: two timevals, then ru_maxrss) and assumes a 64-bit platform.
+    // macOS reports ru_maxrss in bytes; Linux reports it in kilobytes.
     fn getrusage(who: c_int, usage: *mut Rusage) -> c_int;
 }
 
@@ -46,7 +47,15 @@ fn peak_rss_bytes() -> u64 {
     unsafe {
         getrusage(0, &mut usage);
     }
-    usage.0[4] as u64
+    let maxrss = usage.0[4] as u64;
+    #[cfg(not(target_os = "macos"))]
+    {
+        maxrss * 1024
+    }
+    #[cfg(target_os = "macos")]
+    {
+        maxrss
+    }
 }
 
 const SAMPLES: usize = 5;
