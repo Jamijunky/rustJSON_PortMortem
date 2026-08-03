@@ -57,6 +57,8 @@ fn cstr_bytes(p: *const c_char) -> Vec<u8> {
 
 /// Parse `input` with both implementations. Returns (ours, refs); both NULL if
 /// the parse failed (we only compare printing on successfully parsed trees).
+/// The declared length includes the NUL terminator, which
+/// `require_null_terminated` demands, so this also succeeds for the corpus.
 fn parse_both(input: &[u8], require_null_terminated: bool) -> (*mut CJson, *mut CJson) {
     let input_c = {
         let mut v = input.to_vec();
@@ -66,7 +68,7 @@ fn parse_both(input: &[u8], require_null_terminated: bool) -> (*mut CJson, *mut 
     let ours = unsafe {
         cjson_parse_with_length_opts(
             input_c.as_ptr() as *const c_char,
-            input.len(),
+            input_c.len(),
             ptr::null_mut(),
             require_null_terminated as c_int,
         )
@@ -74,7 +76,7 @@ fn parse_both(input: &[u8], require_null_terminated: bool) -> (*mut CJson, *mut 
     let refs = unsafe {
         ref_cJSON_ParseWithLengthOpts(
             input_c.as_ptr() as *const c_char,
-            input.len(),
+            input_c.len(),
             ptr::null_mut(),
             require_null_terminated as c_int,
         )

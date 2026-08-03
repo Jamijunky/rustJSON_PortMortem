@@ -120,10 +120,19 @@ fn run_case(input: &[u8], require_null_terminated: bool) {
     let mut ours_end: *const c_char = ptr::null();
     let mut refs_end: *const c_char = ptr::null();
 
+    // The declared length includes the NUL terminator; `require_null_terminated`
+    // demands a NUL at exactly that offset, so a bare `input.len()` could never
+    // succeed and the `true` half of this differential would be vacuous.
+    let length = if require_null_terminated {
+        input_c.len()
+    } else {
+        input.len()
+    };
+
     let ours = unsafe {
         cjson_parse_with_length_opts(
             input_c.as_ptr() as *const c_char,
-            input.len(),
+            length,
             &mut ours_end,
             require_null_terminated as c_int,
         )
@@ -131,7 +140,7 @@ fn run_case(input: &[u8], require_null_terminated: bool) {
     let refs = unsafe {
         ref_cJSON_ParseWithLengthOpts(
             input_c.as_ptr() as *const c_char,
-            input.len(),
+            length,
             &mut refs_end,
             require_null_terminated as c_int,
         )
